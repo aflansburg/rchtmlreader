@@ -10,7 +10,7 @@ import datetime
 # url="http://www.roughcountry.com/neon-orange-shock-boot-87172.html" # shock boot
 # url ="http://www.roughcountry.com/10-inch-x5-led-light-bar-76912.html" # item without fitment
 
-url = 'http://www.roughcountry.com/jeep-suspension-lift-kit-609s.html'
+url = 'http://www.roughcountry.com/neon-orange-shock-boot-87172.html'
 
 writeToFile = True
 
@@ -40,6 +40,8 @@ with urllib.request.urlopen(url) as response:
     description = soup.find('p', {'id': 'product-description'})
     description = description.text
     description = description.replace(' Read More', '').rstrip(' ')
+
+    print(description)
 
     price = soup.find('span', {'class': 'price'})
     price = price.text
@@ -228,42 +230,47 @@ with urllib.request.urlopen(url) as response:
         for k, v in content.items():
             fieldnames.append(k)
 
+
+        now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+        if itemSku != '':
+            filename = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\csv\\' + itemSku + '.csv'
+        else:
+            filename = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\csv\\Item_' + now + '.csv'
+
         try:
-            now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
-            if itemSku != '':
-                filename = itemSku + '_' + now + '.csv'
-            else:
-                filename = 'exportedItem_' + now + '.csv'
-
-            with open(filename, 'w', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
-                kitLoc = ['Front', 'Rear', 'Body', 'Shocks']
-
-                if any(k in content["In The Box"] for k in kitLoc):
-                    allItems = []
-                    for loc, val in content["In The Box"].items():
-                        individuals = []
-                        for v in val:
-                            individuals.append(v)
-                        individuals = [i.rstrip(' ') for i in individuals]
-                        allItems.append(str(loc).upper() + ": " + ', '.join(individuals))
-                    content["In The Box"] = '; '.join(allItems)
-                else:
-                    content["In The Box"] = ', '.join(content["In The Box"])
-
-                specsFlat =  []
-                for k, v in content["Specs"].items():
-                    thisSpec = k + ': ' + v
-                    specsFlat.append(thisSpec)
-
-                content["Specs"] = '; '.join(specsFlat)
-                content["Fitment"] = '; '.join(content["Fitment"])
-
-                writer.writeheader()
-                writer.writerow(content)
-                csvfile.close()
-
+            open(filename, "r+")
         except PermissionError:
-            print('File with the same name is open. Check to make sure file is closed and try again.')
+            filename = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\csv\\' + itemSku + '_' + now + '.csv'
+
+
+        with open(filename, 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+            kitLoc = ['Front', 'Rear', 'Body', 'Shocks']
+
+            if any(k in content["In The Box"] for k in kitLoc):
+                allItems = []
+                for loc, val in content["In The Box"].items():
+                    individuals = []
+                    for v in val:
+                        individuals.append(v)
+                    individuals = [i.rstrip(' ') for i in individuals]
+                    allItems.append(str(loc).upper() + ": " + ', '.join(individuals))
+                content["In The Box"] = '; '.join(allItems)
+            else:
+                content["In The Box"] = ', '.join(content["In The Box"])
+
+            specsFlat =  []
+            for k, v in content["Specs"].items():
+                thisSpec = k + ': ' + v
+                specsFlat.append(thisSpec)
+
+            content["Specs"] = '; '.join(specsFlat)
+            content["Fitment"] = '; '.join(content["Fitment"])
+
+            writer.writeheader()
+            writer.writerow(content)
+            csvfile.close()
+
+        print(f'File created: {filename}')
