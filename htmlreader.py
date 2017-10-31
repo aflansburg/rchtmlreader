@@ -4,6 +4,8 @@ import re
 import json
 import csv
 import datetime
+import os
+from subprocess import call
 
 # TEST URLs
 # url="http://www.roughcountry.com/jeep-suspension-lift-kit-609s.html" # item with fitment
@@ -36,9 +38,13 @@ with urllib.request.urlopen(url) as response:
 
     soup = BS(html, "html.parser")
 
+    title = soup.find('h1', {'itemprop': 'name'})
+    title = str(title.text)
+
     description = soup.find('p', {'id': 'product-description'})
     description = description.text
     description = description.replace(' Read More', '').rstrip(' ')
+    description = description.replace('\u2019', "'")
 
     print(description)
 
@@ -177,6 +183,7 @@ with urllib.request.urlopen(url) as response:
 
     if fitments is not None:
         content = {
+            'Title': title,
             'SKU': itemSku,
             'Description': description,
             'Price': price,
@@ -189,6 +196,7 @@ with urllib.request.urlopen(url) as response:
         }
     elif boxContents is not None:
         content = {
+            'Title': title,
             'SKU': itemSku,
             'Description': description,
             'Price': price,
@@ -200,6 +208,7 @@ with urllib.request.urlopen(url) as response:
         }
     else:
         content = {
+            'Title': title,
             'SKU': itemSku,
             'Description': description,
             'Price': price,
@@ -372,4 +381,22 @@ with urllib.request.urlopen(url) as response:
         print(f'File created: {filename}')
         print('Jobber file created: ' + jobberFilename)
 
-        ## this section for jobber line write out
+        call(["node", "C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\WebstormProjects\\template_builder\\maketemplate.js", filename])
+
+        if (content['SKU']):
+            eTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\templates\\ebay_desc-' +
+                         content['SKU'] + '.html', 'r')
+            ebayTemplate = eTemp.read()
+            eTemp.close()
+
+            aTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\templates\\amz_desc-' +
+                         content['SKU'] + '.html', 'r')
+            amazonTemplate = aTemp.read()
+            aTemp.close()
+
+            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\templates\\walmart_templates_' +
+                         content['SKU'] + '.html', 'r')
+            walmartTemplates = aTemp.read() # need to set this up so it splits the templates on the node.js side
+            wTemp.close()
+        else:
+            print('due to file name issues, the SC template cannot be automatically generated')
