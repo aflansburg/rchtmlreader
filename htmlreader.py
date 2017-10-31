@@ -5,26 +5,31 @@ import json
 import csv
 import datetime
 
+# TEST URLs
 # url="http://www.roughcountry.com/jeep-suspension-lift-kit-609s.html" # item with fitment
-url="http://www.roughcountry.com/neon-orange-shock-boot-87172.html" # shock boot
+# url="http://www.roughcountry.com/neon-orange-shock-boot-87172.html" # shock boot
 # url ="http://www.roughcountry.com/10-inch-x5-led-light-bar-76912.html" # item without fitment
 
+url = 'http://www.roughcountry.com/jeep-suspension-lift-kit-609s.html'
+
 writeToFile = True
+
 
 def uri_cleaner(uri):
 
     uri_regex = r"^(.*product)\/cache.*(\/\w\/\w\/.*)"
 
-    uriMatches = re.findall(uri_regex, uri)
+    uri_matches = re.findall(uri_regex, uri)
 
-    m = ''
+    u_match = ''
 
-    for uriMatch in uriMatches:
-        m = ''.join(uriMatch)
+    for uri_match in uri_matches:
+        u_match = ''.join(uri_match)
 
-    cleanedUri = m.replace('http://cdn.roughcountry.com', 'https://d11wx52d6i5kyf.cloudfront.net')
+    cleaned_uri = u_match.replace('http://cdn.roughcountry.com', 'https://d11wx52d6i5kyf.cloudfront.net')
 
-    return cleanedUri
+    return cleaned_uri
+
 
 with urllib.request.urlopen(url) as response:
 
@@ -46,6 +51,19 @@ with urllib.request.urlopen(url) as response:
     mainImgMatch = re.findall(mainImgRe, mainImg)
     mainImgUrl = uri_cleaner(mainImgMatch[0])
 
+    # find all images
+    imageSoup = soup.find_all('a', {'class': 'thumb-link'})
+    allImages = []
+
+    for thumb in imageSoup:
+        img = str(thumb)
+        img = img.replace('\n', '')
+        imgRe = r"http.*.jpg"
+        imgM = re.findall(imgRe, img)
+        img = imgM[0]
+        img = uri_cleaner(img)
+        allImages.append(img)
+
     featureData = []
 
     for ultag in soup.find_all('ul', {'class': 'bullet-list features'}):
@@ -54,10 +72,14 @@ with urllib.request.urlopen(url) as response:
     features = list(filter(None, featureData[0].split('\n')))
     features = [i.strip(' ') for i in features]
 
-    notes = list(filter(None, featureData[1].split('\n')))
-    notes = [i.strip(' ') for i in notes]
-    notes = [i.strip('<li>') for i in notes]
-    notes = [i.strip('</li>') for i in notes]
+    if len(featureData) > 1:
+        notes = list(filter(None, featureData[1].split('\n')))
+        notes = [i.strip(' ') for i in notes]
+        notes = [i.strip('<li>') for i in notes]
+        notes = [i.strip('</li>') for i in notes]
+        notes = '; '.join(notes)
+    else:
+        notes = ''
 
     specData = []
 
@@ -80,6 +102,11 @@ with urllib.request.urlopen(url) as response:
     for i in spec_keys:
         specs[f'{i}'] = spec_values[v]
         v += 1
+
+    if 'SKU' in specs:
+        itemSku = specs['SKU']
+    else:
+        itemSku = ''
 
     fitmentData = soup.find('table', {'id': 'fitment-detail'})
     fitmentDataString = str(fitmentData)
@@ -106,6 +133,7 @@ with urllib.request.urlopen(url) as response:
             fitments.append(m)
 
     fitments = [fitment.replace('<td colspan="4">', '') for fitment in fitments]
+    fitments = [fitment.replace(' </tr>', '; ') for fitment in fitments]
 
     boxItemsOnly = []
     front = []
@@ -148,11 +176,11 @@ with urllib.request.urlopen(url) as response:
 
     if fitments is not None:
         content = {
-            'SKU': specs['SKU'],
+            'SKU': itemSku,
             'Description': description,
             'Price': price,
             'Features': '; '.join(features),
-            'Notes': '; '.join(notes),
+            'Notes': notes,
             'Specs': specs,
             'Fitment': fitments,
             'In The Box': boxContents,
@@ -160,22 +188,22 @@ with urllib.request.urlopen(url) as response:
         }
     elif boxContents is not None:
         content = {
-            'SKU': specs['SKU'],
+            'SKU': itemSku,
             'Description': description,
             'Price': price,
             'Features': '; '.join(features),
-            'Notes': '; '.join(notes),
+            'Notes': notes,
             'Specs': specs,
             'In The Box': boxContents,
             'MainImg': mainImgUrl
         }
     else:
         content = {
-            'SKU': specs['SKU'],
+            'SKU': itemSku,
             'Description': description,
             'Price': price,
             'Features': '; '.join(features),
-            'Notes': '; '.join(notes),
+            'Notes': notes,
             'Specs': specs,
             'MainImg': mainImgUrl
         }
@@ -183,6 +211,12 @@ with urllib.request.urlopen(url) as response:
     delKV = [k for k, v, in content.items() if v is None]
     for k in delKV:
         del content[k]
+
+    picCount = 0
+    for pic in allImages:
+        picCount += 1
+        keyStr = f'image_{picCount}'
+        content[keyStr] = pic
 
     # at this point 'content' is a well structured JSON-type dict that could be exported
     print(json.dumps(content, sort_keys=True, indent=4))
@@ -196,7 +230,12 @@ with urllib.request.urlopen(url) as response:
 
         try:
             now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-            filename = 'exportedItem_' + now + '.csv'
+
+            if itemSku != '':
+                filename = itemSku + '_' + now + '.csv'
+            else:
+                filename = 'exportedItem_' + now + '.csv'
+
             with open(filename, 'w', newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -218,8 +257,6 @@ with urllib.request.urlopen(url) as response:
                 for k, v in content["Specs"].items():
                     thisSpec = k + ': ' + v
                     specsFlat.append(thisSpec)
-
-
 
                 content["Specs"] = '; '.join(specsFlat)
                 content["Fitment"] = '; '.join(content["Fitment"])
