@@ -14,7 +14,6 @@ url = 'http://www.roughcountry.com/neon-orange-shock-boot-87172.html'
 
 writeToFile = True
 
-
 def uri_cleaner(uri):
 
     uri_regex = r"^(.*product)\/cache.*(\/\w\/\w\/.*)"
@@ -217,7 +216,7 @@ with urllib.request.urlopen(url) as response:
     picCount = 0
     for pic in allImages:
         picCount += 1
-        keyStr = f'image_{picCount}'
+        keyStr = f'Image {picCount}'
         content[keyStr] = pic
 
     # at this point 'content' is a well structured JSON-type dict that could be exported
@@ -233,17 +232,21 @@ with urllib.request.urlopen(url) as response:
 
         now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
+        fileLocation = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\csv\\'
+
         if itemSku != '':
-            filename = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\csv\\' + itemSku + '.csv'
+            filename = fileLocation + itemSku + '.csv'
         else:
-            filename = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\csv\\Item_' + now + '.csv'
+            filename = fileLocation + 'Item_' + now + '.csv'
 
         try:
             open(filename, "r+")
+        except FileNotFoundError:
+            print("File doesn't exist. Continuing....")
         except PermissionError:
-            filename = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\csv\\' + itemSku + '_' + now + '.csv'
+            filename = fileLocation + itemSku + '_' + now + '.csv'
 
-
+        # create csv for generating templates
         with open(filename, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -273,4 +276,100 @@ with urllib.request.urlopen(url) as response:
             writer.writerow(content)
             csvfile.close()
 
+        ## create jobber file
+        jobberFileLocation = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\jobber_lines\\'
+        if itemSku != '':
+            jobberFilename = jobberFileLocation + itemSku + '_jobber.csv'
+        else:
+            jobberFilename = jobberFileLocation + 'Item_' + now + '_jobber.csv'
+
+        try:
+            open(jobberFilename, "r+")
+        except FileNotFoundError:
+            print("File doesn't exist. Continuing....")
+        except PermissionError:
+            jobberFilename = jobberFileLocation + itemSku + '_' + now + '_jobber.csv'
+
+        jobberFields = ['MPN', 'Item Type', 'MAP', 'Discount %', 'Your Cost', 'Title',
+                        'Strut/Shock Series', 'Start Year', 'End Year', 'Make',
+                        'Model', 'Drive', 'Combined Fitment', 'Description', 'Kit Contents',
+                        'Benefits', 'Technical Notes', 'Item Specifics', 'Weight (Lbs)',
+                        'US Shipping', 'CAN Shipping', 'Image 1', 'Image 2', 'Image 3', 'Image 4',
+                        'Image 5', 'Image 6', 'Image 7', 'Image 8', 'Image 9', 'Superseded', 'Warranty',
+                        'UPC Code', 'Flat Discount %']
+
+        with open(jobberFilename, 'w', newline='') as jobberCsvFile:
+            jobberWriter = csv.DictWriter(jobberCsvFile, fieldnames=jobberFields)
+
+            jobberWriter.writeheader()
+
+            if len(allImages) == 1:
+                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
+                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
+                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
+                                       'Image 1': allImages[0]})
+            if len(allImages) == 2:
+                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
+                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
+                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
+                                       'Image 1': allImages[0], 'Image 2': allImages[1]})
+            if len(allImages) == 3:
+                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
+                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
+                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
+                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2]})
+            if len(allImages) == 4:
+                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
+                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
+                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
+                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
+                                       'Image 4': allImages[3]})
+            if len(allImages) == 5:
+                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
+                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
+                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
+                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
+                                       'Image 4': allImages[3], 'Image 5': allImages[4]})
+            if len(allImages) == 6:
+                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
+                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
+                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
+                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
+                                       'Image 4': allImages[3], 'Image 5': allImages[4], 'Image 6': allImages[5]})
+            if len(allImages) == 7:
+                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
+                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
+                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
+                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
+                                       'Image 4': allImages[3], 'Image 5': allImages[4], 'Image 6': allImages[5],
+                                       'Image 7': allImages[6]})
+            if len(allImages) == 8:
+                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
+                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
+                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
+                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
+                                       'Image 4': allImages[3], 'Image 5': allImages[4], 'Image 6': allImages[5],
+                                       'Image 7': allImages[6], 'Image 8': allImages[7]})
+            if len(allImages) >= 9:
+                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
+                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
+                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
+                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
+                                       'Image 4': allImages[3], 'Image 5': allImages[4], 'Image 6': allImages[5],
+                                       'Image 7': allImages[6], 'Image 8': allImages[7], 'Image 9': allImages[8]})
+
+            jobberCsvFile.close()
+
         print(f'File created: {filename}')
+        print('Jobber file created: ' + jobberFilename)
+
+        ## this section for jobber line write out
