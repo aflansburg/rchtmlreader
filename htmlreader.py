@@ -12,7 +12,7 @@ from subprocess import call
 # url="http://www.roughcountry.com/neon-orange-shock-boot-87172.html" # shock boot
 # url ="http://www.roughcountry.com/10-inch-x5-led-light-bar-76912.html" # item without fitment
 
-url = 'http://www.roughcountry.com/neon-orange-shock-boot-87172.html'
+url = 'http://www.roughcountry.com/gm-bed-mat-rcm58c.html'
 
 writeToFile = True
 
@@ -37,6 +37,16 @@ with urllib.request.urlopen(url) as response:
     html = response.read()
 
     soup = BS(html, "html.parser")
+
+    customSelector = False
+    customNote = ''
+    if (soup.find('div', {'class': 'input-box'})):
+        itemSku = input('OPTION SELECTOR FOUND - MANUALLY ENTER SKU: \n')
+        customSelector = True
+        customNote = input('Enter the custom attribute to append to tech notes:\n')
+    else:
+        itemSku = soup.find('span', {'id': 'sku-id'})
+        itemSku = str(itemSku.text)
 
     title = soup.find('h1', {'itemprop': 'name'})
     title = str(title.text)
@@ -84,7 +94,11 @@ with urllib.request.urlopen(url) as response:
         notes = [i.strip(' ') for i in notes]
         notes = [i.strip('<li>') for i in notes]
         notes = [i.strip('</li>') for i in notes]
+        if customSelector:
+            notes.append(f'Fits models with {customNote} ONLY!')
         notes = '; '.join(notes)
+    elif len(featureData) == 1 and customSelector:
+        notes = f'Fits models with {customNote} ONLY!'
     else:
         notes = ''
 
@@ -110,10 +124,10 @@ with urllib.request.urlopen(url) as response:
         specs[f'{i}'] = spec_values[v]
         v += 1
 
-    if 'SKU' in specs:
-        itemSku = specs['SKU']
-    else:
-        itemSku = ''
+    # if 'SKU' in specs:
+    #     itemSku = specs['SKU']
+    # else:
+    #     itemSku = ''
 
     fitmentData = soup.find('table', {'id': 'fitment-detail'})
     fitmentDataString = str(fitmentData)
@@ -385,18 +399,18 @@ with urllib.request.urlopen(url) as response:
 
         if (content['SKU']):
             eTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\templates\\ebay_desc-' +
-                         content['SKU'] + '.html', 'r')
+                         itemSku + '.html', 'r')
             ebayTemplate = eTemp.read()
             eTemp.close()
 
             aTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\templates\\amz_desc-' +
-                         content['SKU'] + '.html', 'r')
+                         itemSku + '.html', 'r')
             amazonTemplate = aTemp.read()
             aTemp.close()
 
             wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\templates\\walmart_templates_' +
-                         content['SKU'] + '.html', 'r')
-            walmartTemplates = aTemp.read() # need to set this up so it splits the templates on the node.js side
+                         itemSku + '.html', 'r')
+            walmartTemplates = wTemp.read() # need to set this up so it splits the templates on the node.js side
             wTemp.close()
         else:
             print('due to file name issues, the SC template cannot be automatically generated')
