@@ -1,18 +1,18 @@
-import urllib.request
-from bs4 import BeautifulSoup as BS
-import re
-import json
 import csv
 import datetime
-import os
+import json
+import re
+import urllib.request
 from subprocess import call
+
+from bs4 import BeautifulSoup as BS
 
 # TEST URLs
 # url="http://www.roughcountry.com/jeep-suspension-lift-kit-609s.html" # item with fitment
 # url="http://www.roughcountry.com/neon-orange-shock-boot-87172.html" # shock boot
 # url ="http://www.roughcountry.com/10-inch-x5-led-light-bar-76912.html" # item without fitment
 
-url = 'http://www.roughcountry.com/gm-bed-mat-rcm58c.html'
+url = 'http://www.roughcountry.com/neon-orange-shock-boot-87172.html'
 
 writeToFile = True
 
@@ -44,8 +44,11 @@ with urllib.request.urlopen(url) as response:
         itemSku = input('OPTION SELECTOR FOUND - MANUALLY ENTER SKU: \n')
         customSelector = True
         customNote = input('Enter the custom attribute to append to tech notes:\n')
-    else:
+    elif (soup.find('span', {'id': 'sku-id'})):
         itemSku = soup.find('span', {'id': 'sku-id'})
+        itemSku = str(itemSku.text)
+    else:
+        itemSku = soup.find('span', {'itemprop': 'sku'})
         itemSku = str(itemSku.text)
 
     title = soup.find('h1', {'itemprop': 'name'})
