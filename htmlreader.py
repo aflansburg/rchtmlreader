@@ -3,6 +3,8 @@ import datetime
 import json
 import re
 import urllib.request
+import sys
+import validators
 from subprocess import call
 
 from bs4 import BeautifulSoup as BS
@@ -12,7 +14,12 @@ from bs4 import BeautifulSoup as BS
 # url="http://www.roughcountry.com/neon-orange-shock-boot-87172.html" # shock boot
 # url ="http://www.roughcountry.com/10-inch-x5-led-light-bar-76912.html" # item without fitment
 
-url = 'http://www.roughcountry.com/neon-orange-shock-boot-87172.html'
+if sys.argv[1]:
+    if validators.url(sys.argv[1]):
+        url = str(sys.argv[1])
+else:
+    url = 'http://www.roughcountry.com/gm-suspension-lift-kit-280n2.html'
+    print('invalid url - defaulting to ' + url)
 
 writeToFile = True
 
@@ -62,7 +69,8 @@ with urllib.request.urlopen(url) as response:
     print(description)
 
     price = soup.find('span', {'class': 'price'})
-    price = price.text
+    price = str(price.text)
+    price = price.replace('\n', '').replace(' ', '').replace('$', '').replace('>', '').replace('<', '')
 
     mainImg = soup.find('img', {'id': 'image-main'})
     mainImg = str(mainImg)
@@ -323,7 +331,7 @@ with urllib.request.urlopen(url) as response:
                         'US Shipping', 'CAN Shipping', 'Image 1', 'Image 2', 'Image 3', 'Image 4',
                         'Image 5', 'Image 6', 'Image 7', 'Image 8', 'Image 9', 'Superseded', 'Warranty',
                         'UPC Code', 'Flat Discount %']
-
+        
         with open(jobberFilename, 'w', newline='') as jobberCsvFile:
             jobberWriter = csv.DictWriter(jobberCsvFile, fieldnames=jobberFields)
 
@@ -395,8 +403,72 @@ with urllib.request.urlopen(url) as response:
 
             jobberCsvFile.close()
 
+        ## create amzFile file
+        amzFileFileLocation = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\amzFiles\\'
+        if itemSku != '':
+            amzFileFilename = amzFileFileLocation + itemSku + '_amzFile.csv'
+        else:
+            amzFileFilename = amzFileFileLocation + 'Item_' + now + '_amzFile.csv'
+        
+        try:
+            open(amzFileFilename, "r+")
+        except FileNotFoundError:
+            print("File doesn't exist. Continuing....")
+        except PermissionError:
+            amzFileFilename = amzFileFileLocation + itemSku + '_' + now + '_amzFile.csv'
+
+        amzFileFields = ['item_sku', 'item_name', 'part_number', 'standard_price', 'main_image_url', 'other_image_url1',
+                         'other_image_url2', 'other_image_url3', 'product_description', 'bullet_point1', 'bullet_point2',
+                         'bullet_point3', 'bullet_point4', 'bullet_point5']
+
+        with open(amzFileFilename, 'w', newline='') as amzFileCsvFile:
+            amzFileWriter = csv.DictWriter(amzFileCsvFile, fieldnames=amzFileFields)
+
+            amzFileWriter.writeheader()
+
+            if len(allImages) == 1:
+                amzFileWriter.writerow({'item_sku': content['SKU'], 'product_description': content['Description'],
+                                        'item_name': content['Title'], 'bullet_point1': 'Features: ' +
+                                        content['Features'], 'bullet_point2': 'Fits: ' + content['Fitment'],
+                                       'bullet_point4': 'Kit Contents: ' + content['In The Box'],
+                                        'part_number': content['SKU'], 'bullet_point3': 'Notes: ' + content['Notes'],
+                                        'standard_price': content['Price'], 'bullet_point5': 'Specs: ' +
+                                        content['Specs'], 'main_image_url': allImages[0]})
+            if len(allImages) == 2:
+                amzFileWriter.writerow({'item_sku': content['SKU'], 'product_description': content['Description'],
+                                        'item_name': content['Title'], 'bullet_point1': 'Features: ' +
+                                        content['Features'], 'bullet_point2': 'Fits: ' + content['Fitment'],
+                                       'bullet_point4': 'Kit Contents: ' + content['In The Box'],
+                                        'part_number': content['SKU'], 'bullet_point3': 'Notes: ' + content['Notes'],
+                                        'standard_price': content['Price'], 'bullet_point5': 'Specs: ' +
+                                        content['Specs'], 'main_image_url': allImages[0],
+                                        'other_image_url1': allImages[1]})
+            if len(allImages) == 3:
+                amzFileWriter.writerow({'item_sku': content['SKU'], 'product_description': content['Description'],
+                                        'item_name': content['Title'], 'bullet_point1': 'Features: ' +
+                                        content['Features'], 'bullet_point2': 'Fits: ' + content['Fitment'],
+                                       'bullet_point4': 'Kit Contents: ' + content['In The Box'],
+                                        'part_number': content['SKU'], 'bullet_point3': 'Notes: ' + content['Notes'],
+                                        'standard_price': content['Price'], 'bullet_point5': 'Specs: ' +
+                                        content['Specs'], 'main_image_url': allImages[0],
+                                        'other_image_url1': allImages[1], 'other_image_url2': allImages[2]})
+            if len(allImages) == 4:
+                amzFileWriter.writerow({'item_sku': content['SKU'], 'product_description': content['Description'],
+                                        'item_name': content['Title'], 'bullet_point1': 'Features: ' +
+                                        content['Features'], 'bullet_point2': 'Fits: ' + content['Fitment'],
+                                       'bullet_point4': 'Kit Contents: ' + content['In The Box'],
+                                        'part_number': content['SKU'], 'bullet_point3': 'Notes: ' + content['Notes'],
+                                        'standard_price': content['Price'], 'bullet_point5': 'Specs: ' +
+                                        content['Specs'], 'main_image_url': allImages[0],
+                                        'other_image_url1': allImages[1], 'other_image_url2': allImages[2],
+                                        'other_image_url3': allImages[3]})
+
+            amzFileCsvFile.close()
+        
+
         print(f'File created: {filename}')
         print('Jobber file created: ' + jobberFilename)
+        print('Amazon file created: ' + amzFileFilename)
 
         call(["node", "C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\WebstormProjects\\template_builder\\maketemplate.js", filename])
 
