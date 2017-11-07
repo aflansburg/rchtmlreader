@@ -5,6 +5,7 @@ import re
 import urllib.request
 import sys
 import validators
+import os
 from subprocess import call
 
 from bs4 import BeautifulSoup as BS
@@ -23,6 +24,19 @@ else:
 
 writeToFile = True
 
+def clean_directories():
+    genPath = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files'
+    subDirs = [dir for dir in os.listdir(genPath)]
+
+    csvfiles = [name for name in os.listdir(genPath + '\\csv')]
+    if len(csvfiles) >= 1:
+        delPrompt = input('Do you wish to purge old files? [y/n]:  ')
+        if delPrompt.lower() == 'y':
+            for subdir in subDirs:
+                files = [name for name in os.listdir(genPath + '\\' + subdir)]
+                for f in files:
+                    os.remove(genPath + '\\' + subdir + '\\' + f)
+
 def uri_cleaner(uri):
 
     uri_regex = r"^(.*product)\/cache.*(\/\w\/\w\/.*)"
@@ -38,6 +52,7 @@ def uri_cleaner(uri):
 
     return cleaned_uri
 
+clean_directories()
 
 with urllib.request.urlopen(url) as response:
 
@@ -263,7 +278,6 @@ with urllib.request.urlopen(url) as response:
         for k, v in content.items():
             fieldnames.append(k)
 
-
         now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
         fileLocation = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\csv\\'
@@ -338,46 +352,46 @@ with urllib.request.urlopen(url) as response:
             jobberWriter.writeheader()
 
             if len(allImages) == 1:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'],'Description': content['Description'],
                                        'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
                                        'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
                                        'MAP': content['Price'], 'Item Specifics': content['Specs'],
                                        'Image 1': allImages[0]})
             if len(allImages) == 2:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
                                        'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
                                        'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
                                        'MAP': content['Price'], 'Item Specifics': content['Specs'],
                                        'Image 1': allImages[0], 'Image 2': allImages[1]})
             if len(allImages) == 3:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
                                        'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
                                        'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
                                        'MAP': content['Price'], 'Item Specifics': content['Specs'],
                                        'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2]})
             if len(allImages) == 4:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
                                        'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
                                        'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
                                        'MAP': content['Price'], 'Item Specifics': content['Specs'],
                                        'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
                                        'Image 4': allImages[3]})
             if len(allImages) == 5:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
                                        'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
                                        'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
                                        'MAP': content['Price'], 'Item Specifics': content['Specs'],
                                        'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
                                        'Image 4': allImages[3], 'Image 5': allImages[4]})
             if len(allImages) == 6:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
                                        'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
                                        'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
                                        'MAP': content['Price'], 'Item Specifics': content['Specs'],
                                        'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
                                        'Image 4': allImages[3], 'Image 5': allImages[4], 'Image 6': allImages[5]})
             if len(allImages) == 7:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
                                        'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
                                        'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
                                        'MAP': content['Price'], 'Item Specifics': content['Specs'],
@@ -385,7 +399,7 @@ with urllib.request.urlopen(url) as response:
                                        'Image 4': allImages[3], 'Image 5': allImages[4], 'Image 6': allImages[5],
                                        'Image 7': allImages[6]})
             if len(allImages) == 8:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
                                        'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
                                        'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
                                        'MAP': content['Price'], 'Item Specifics': content['Specs'],
@@ -393,7 +407,7 @@ with urllib.request.urlopen(url) as response:
                                        'Image 4': allImages[3], 'Image 5': allImages[4], 'Image 6': allImages[5],
                                        'Image 7': allImages[6], 'Image 8': allImages[7]})
             if len(allImages) >= 9:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Description': content['Description'],
+                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
                                        'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
                                        'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
                                        'MAP': content['Price'], 'Item Specifics': content['Specs'],
@@ -426,6 +440,15 @@ with urllib.request.urlopen(url) as response:
 
             amzFileWriter.writeheader()
 
+            if len(allImages) == 0:
+                amzFileWriter.writerow({'item_sku': content['SKU'], 'product_description': content['Description'],
+                                        'item_name': content['Title'], 'bullet_point1': 'Features: ' +
+                                        content['Features'], 'bullet_point2': 'Fits: ' + content['Fitment'],
+                                       'bullet_point4': 'Kit Contents: ' + content['In The Box'],
+                                        'part_number': content['SKU'], 'bullet_point3': 'Notes: ' + content['Notes'],
+                                        'standard_price': content['Price'], 'bullet_point5': 'Specs: ' +
+                                        content['Specs'], 'main_image_url': content['MainImg']})
+
             if len(allImages) == 1:
                 amzFileWriter.writerow({'item_sku': content['SKU'], 'product_description': content['Description'],
                                         'item_name': content['Title'], 'bullet_point1': 'Features: ' +
@@ -452,7 +475,7 @@ with urllib.request.urlopen(url) as response:
                                         'standard_price': content['Price'], 'bullet_point5': 'Specs: ' +
                                         content['Specs'], 'main_image_url': allImages[0],
                                         'other_image_url1': allImages[1], 'other_image_url2': allImages[2]})
-            if len(allImages) == 4:
+            if len(allImages) >= 4:
                 amzFileWriter.writerow({'item_sku': content['SKU'], 'product_description': content['Description'],
                                         'item_name': content['Title'], 'bullet_point1': 'Features: ' +
                                         content['Features'], 'bullet_point2': 'Fits: ' + content['Fitment'],
@@ -472,6 +495,7 @@ with urllib.request.urlopen(url) as response:
 
         call(["node", "C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\WebstormProjects\\template_builder\\maketemplate.js", filename])
 
+        # generating SC new prod row
         if (content['SKU']):
             eTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\templates\\ebay_desc-' +
                          itemSku + '.html', 'r')
@@ -483,9 +507,93 @@ with urllib.request.urlopen(url) as response:
             amazonTemplate = aTemp.read()
             aTemp.close()
 
-            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\templates\\walmart_templates_' +
+            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\walmartFiles\\wal_desc_' +
                          itemSku + '.html', 'r')
-            walmartTemplates = wTemp.read() # need to set this up so it splits the templates on the node.js side
+            walmartDesc = wTemp.read()
             wTemp.close()
+
+            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\walmartFiles\\wal_shelf_' +
+                         itemSku + '.html', 'r')
+            walmartShelf = wTemp.read()
+            wTemp.close()
+
+            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\walmartFiles\\wal_short_' +
+                         itemSku + '.html', 'r')
+            walmartShort = wTemp.read()
+            wTemp.close()
+
+            scFieldnames = ['results', 'product custom sku', 'warehouse id', 'model number', 'product name',
+                            'product weight', 'upc', 'asin', 'manufacturer', 'msrp', 'eBay Description',
+                            'walmart description', 'walmart attr:shelf description', 'walmart attr:short description',
+                            'walmart attr:brand', 'warehouse name', 'qty', 'product attribute:multifitment',
+                            'product attribute:warranty', 'product attribute:superseded', 'product attribute:type',
+                            'product attribute:height', 'image file', 'alternate image file 1', 'alternate image file 2',
+                            'alternate image file 3', 'alternate image file 4', 'alternate image file 5',
+                            'alternate image file 6', 'alternate image file 7', 'alternate image file 8',
+                            'alternate image file 9']
+
+            # may or may not need these later
+            ''', 'walmart attr:Shipping Override-Is Shipping Allowed (#1)',
+                            'walmart attr:Shipping Override-Ship Region (#1)',
+                            'walmart attr:Shipping Override-Ship Method (#1)',
+                            'walmart attr:Shipping Override-Ship Price (#1)',
+                            'walmart attr:Shipping Override-Is Shipping Allowed (#2)',
+                            'walmart attr:Shipping Override-Ship Region (#2)',
+                            'walmart attr:Shipping Override-Ship Method (#2)',
+                            'walmart attr:Shipping Override-Ship Price (#2)'''
+
+            scFileLoc = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\sc-line\\'
+
+            if itemSku != '':
+                scFilename = scFileLoc + itemSku + '_sc-line.csv'
+            else:
+                scFilename = scFileLoc + 'Item_' + now + '_sc-line.csv'
+
+            try:
+                open(scFilename, "r+")
+            except FileNotFoundError:
+                print("File doesn't exist. Continuing....")
+            except PermissionError:
+                scFilename = scFileLoc + itemSku + '_' + now + '_sc-line.csv'
+
+            with open(scFilename, 'w', newline='') as scFile:
+                scFileWriter = csv.DictWriter(scFile, fieldnames=scFieldnames)
+
+                scFileWriter.writeheader()
+
+                # map to the appropriate keys/field names
+                scRowData = {}
+
+                if (content['SKU']):
+                    scRowData['product custom sku'] = content['SKU']
+                    scRowData['warehouse id'] = content['SKU']
+                    scRowData['model number'] = content['SKU']
+                if (content['Title']):
+                    scRowData['product name'] = content['Title']
+                if (content['Price']):
+                    scRowData['msrp'] = content['Price']
+                if ebayTemplate:
+                    scRowData['eBay Description'] = ebayTemplate
+                scRowData['walmart attr:brand'] = 'Rough Country'
+                if walmartDesc: # need split up
+                    scRowData['walmart description'] = walmartDesc
+                if walmartShelf:
+                    scRowData['walmart attr:shelf description'] = walmartShelf
+                if walmartShort:
+                    scRowData['walmart attr:short description'] = walmartShort
+                if (content['MainImg']):
+                    scRowData['image file'] = content['MainImg']
+                if(allImages):
+                    scImages = allImages
+                    if scRowData:
+                        scImages.remove(content['MainImg'])
+                    for sImg in scImages:
+                        imgKey = scImages.index(sImg) + 1
+                        imgKeyStr = 'alternate image file ' + str(imgKey)
+                        scRowData[imgKeyStr] = sImg
+
+                scFileWriter.writerow(scRowData)
+            scFile.close()
+
         else:
             print('due to file name issues, the SC template cannot be automatically generated')
