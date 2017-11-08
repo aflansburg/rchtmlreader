@@ -80,6 +80,12 @@ with urllib.request.urlopen(url) as response:
     description = description.text
     description = description.replace(' Read More', '').rstrip(' ')
     description = description.replace('\u2019', "'")
+    description = description.replace('\u0022', "'")
+    description = description.replace('\u8220', '\u0022')
+    description = description.replace('\u8221', '\u0022')
+    description = description.replace('ï¿½', '"')
+    description = description.replace('\u201C', '"')
+    description = description.replace('\u201D', '"')
 
     print(description)
 
@@ -525,7 +531,7 @@ with urllib.request.urlopen(url) as response:
             scFieldnames = ['results', 'product custom sku', 'warehouse id', 'model number', 'product name',
                             'product weight', 'upc', 'asin', 'manufacturer', 'msrp', 'eBay Description',
                             'walmart description', 'walmart attr:shelf description', 'walmart attr:short description',
-                            'walmart attr:brand', 'warehouse name', 'qty', 'product attribute:multifitment',
+                            'walmart attr:brand', 'taxable', 'warehouse name', 'qty', 'product attribute:multifitment',
                             'product attribute:warranty', 'product attribute:superseded', 'product attribute:type',
                             'product attribute:height', 'image file', 'alternate image file 1', 'alternate image file 2',
                             'alternate image file 3', 'alternate image file 4', 'alternate image file 5',
@@ -569,7 +575,7 @@ with urllib.request.urlopen(url) as response:
                     scRowData['warehouse id'] = content['SKU']
                     scRowData['model number'] = content['SKU']
                 if (content['Title']):
-                    scRowData['product name'] = content['Title']
+                    scRowData['product name'] = content['SKU'] + ' - ' + content['Title']
                 if (content['Price']):
                     scRowData['msrp'] = content['Price']
                 if ebayTemplate:
@@ -591,6 +597,9 @@ with urllib.request.urlopen(url) as response:
                         imgKey = scImages.index(sImg) + 1
                         imgKeyStr = 'alternate image file ' + str(imgKey)
                         scRowData[imgKeyStr] = sImg
+                scRowData['taxable'] = 'Yes'
+                scRowData['warehouse name'] = 'Rough Country'
+                scRowData['manufacturer'] = 'Rough Country'
 
                 scFileWriter.writerow(scRowData)
             scFile.close()
