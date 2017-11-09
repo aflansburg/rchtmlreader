@@ -5,9 +5,10 @@ import re
 import urllib.request
 import sys
 import validators
-import os
 from subprocess import call
-
+from helpers import clean_directories
+from helpers import uri_cleaner
+from helpers import replace_unicode_quotes
 from bs4 import BeautifulSoup as BS
 
 # TEST URLs
@@ -22,35 +23,14 @@ else:
     url = 'http://www.roughcountry.com/gm-suspension-lift-kit-280n2.html'
     print('invalid url - defaulting to ' + url)
 
+insertVideo = False
+if sys.argv[2]:
+    if sys.argv[2] == '-video' and sys.argv[3]:
+        insertVideo = True
+        videoLink = sys.argv[3]
+        print('Video Link Processed!')
+
 writeToFile = True
-
-def clean_directories():
-    genPath = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files'
-    subDirs = [dir for dir in os.listdir(genPath)]
-
-    csvfiles = [name for name in os.listdir(genPath + '\\csv')]
-    if len(csvfiles) >= 1:
-        delPrompt = input('Do you wish to purge old files? [y/n]:  ')
-        if delPrompt.lower() == 'y':
-            for subdir in subDirs:
-                files = [name for name in os.listdir(genPath + '\\' + subdir)]
-                for f in files:
-                    os.remove(genPath + '\\' + subdir + '\\' + f)
-
-def uri_cleaner(uri):
-
-    uri_regex = r"^(.*product)\/cache.*(\/\w\/\w\/.*)"
-
-    uri_matches = re.findall(uri_regex, uri)
-
-    u_match = ''
-
-    for uri_match in uri_matches:
-        u_match = ''.join(uri_match)
-
-    cleaned_uri = u_match.replace('http://cdn.roughcountry.com', 'https://d11wx52d6i5kyf.cloudfront.net')
-
-    return cleaned_uri
 
 clean_directories()
 
@@ -62,11 +42,11 @@ with urllib.request.urlopen(url) as response:
 
     customSelector = False
     customNote = ''
-    if (soup.find('div', {'class': 'input-box'})):
+    if soup.find('div', {'class': 'input-box'}):
         itemSku = input('OPTION SELECTOR FOUND - MANUALLY ENTER SKU: \n')
         customSelector = True
         customNote = input('Enter the custom attribute to append to tech notes:\n')
-    elif (soup.find('span', {'id': 'sku-id'})):
+    elif soup.find('span', {'id': 'sku-id'}):
         itemSku = soup.find('span', {'id': 'sku-id'})
         itemSku = str(itemSku.text)
     else:
@@ -79,15 +59,8 @@ with urllib.request.urlopen(url) as response:
     description = soup.find('p', {'id': 'product-description'})
     description = description.text
     description = description.replace(' Read More', '').rstrip(' ')
-    description = description.replace('\u2019', "'")
-    description = description.replace('\u0022', "'")
-    description = description.replace('\u8220', '\u0022')
-    description = description.replace('\u8221', '\u0022')
-    description = description.replace('ï¿½', '"')
-    description = description.replace('\u201C', '"')
-    description = description.replace('\u201D', '"')
 
-    print(description)
+    description = replace_unicode_quotes(description)
 
     price = soup.find('span', {'class': 'price'})
     price = str(price.text)
@@ -156,16 +129,9 @@ with urllib.request.urlopen(url) as response:
         specs[f'{i}'] = spec_values[v]
         v += 1
 
-    # if 'SKU' in specs:
-    #     itemSku = specs['SKU']
-    # else:
-    #     itemSku = ''
-
     fitmentData = soup.find('table', {'id': 'fitment-detail'})
     fitmentDataString = str(fitmentData)
     fitmentDataString = fitmentDataString.replace("\n", "").replace("\r", "").replace("\n", "")
-
-    # print(fitmentDataString)
 
     regex = r"<tbody>.*<\/tbody>"
 
@@ -264,6 +230,9 @@ with urllib.request.urlopen(url) as response:
             'MainImg': mainImgUrl
         }
 
+    if videoLink:
+        content['video_link'] = videoLink
+
     delKV = [k for k, v, in content.items() if v is None]
     for k in delKV:
         del content[k]
@@ -318,7 +287,7 @@ with urllib.request.urlopen(url) as response:
             else:
                 content["In The Box"] = ', '.join(content["In The Box"])
 
-            specsFlat =  []
+            specsFlat = []
             for k, v in content["Specs"].items():
                 thisSpec = k + ': ' + v
                 specsFlat.append(thisSpec)
@@ -330,7 +299,7 @@ with urllib.request.urlopen(url) as response:
             writer.writerow(content)
             csvfile.close()
 
-        ## create jobber file
+        # create jobber file
         jobberFileLocation = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\jobber_lines\\'
         if itemSku != '':
             jobberFilename = jobberFileLocation + itemSku + '_jobber.csv'
