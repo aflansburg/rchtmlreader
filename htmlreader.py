@@ -23,6 +23,7 @@ else:
     url = 'http://www.roughcountry.com/gm-suspension-lift-kit-280n2.html'
     print('invalid url - defaulting to ' + url)
 
+videoLink = None
 insertVideo = False
 if sys.argv[2]:
     if sys.argv[2] == '-video' and sys.argv[3]:
