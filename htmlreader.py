@@ -16,16 +16,23 @@ from bs4 import BeautifulSoup as BS
 # url="http://www.roughcountry.com/neon-orange-shock-boot-87172.html" # shock boot
 # url ="http://www.roughcountry.com/10-inch-x5-led-light-bar-76912.html" # item without fitment
 
-if sys.argv[1]:
+try:
     if validators.url(sys.argv[1]):
         url = str(sys.argv[1])
-else:
-    url = 'http://www.roughcountry.com/gm-suspension-lift-kit-280n2.html'
-    print('invalid url - defaulting to ' + url)
+        print("Url validated...")
+    else:
+        print('No valid URL supplied - exiting....')
+        exit(0)
+
+except IndexError:
+    print('No URL supplied - exiting......')
+    exit(0)
 
 videoLink = None
 insertVideo = False
-if sys.argv[2]:
+
+
+try:
     if sys.argv[2] == '-video' and sys.argv[3]:
         insertVideo = True
         videoLink = sys.argv[3]
@@ -34,6 +41,8 @@ if sys.argv[2]:
         purge = input('Are you sure you want to purge all files [Y/N]?: ')
         if purge.lower() == 'yes' or 'y' or 'ye' or 'si' or 'ja' or 'oui':
             clean_directories()
+except IndexError:
+    print('No arguments supplied....')
 
 writeToFile = True
 
@@ -511,12 +520,12 @@ with urllib.request.urlopen(url) as response:
             scFieldnames = ['results', 'product custom sku', 'warehouse id', 'model number', 'product name',
                             'product weight', 'upc', 'asin', 'manufacturer', 'msrp', 'eBay Description',
                             'walmart description', 'walmart attr:shelf description', 'walmart attr:short description',
-                            'walmart attr:brand', 'taxable', 'warehouse name', 'qty', 'product attribute:multifitment',
-                            'product attribute:warranty', 'product attribute:superseded', 'product attribute:type',
-                            'product attribute:height', 'image file', 'alternate image file 1', 'alternate image file 2',
-                            'alternate image file 3', 'alternate image file 4', 'alternate image file 5',
-                            'alternate image file 6', 'alternate image file 7', 'alternate image file 8',
-                            'alternate image file 9']
+                            'walmart attr:brand', 'taxable', 'warehouse name', 'qty', 'product weight',
+                            'product attribute:multifitment', 'product attribute:warranty',
+                            'product attribute:superseded', 'product attribute:type', 'product attribute:height',
+                            'image file', 'alternate image file 1', 'alternate image file 2', 'alternate image file 3',
+                            'alternate image file 4', 'alternate image file 5', 'alternate image file 6',
+                            'alternate image file 7', 'alternate image file 8', 'alternate image file 9']
 
             # may or may not need these later
             ''', 'walmart attr:Shipping Override-Is Shipping Allowed (#1)',
