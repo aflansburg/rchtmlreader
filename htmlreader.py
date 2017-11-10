@@ -31,7 +31,6 @@ except IndexError:
 videoLink = None
 insertVideo = False
 
-
 try:
     if sys.argv[2] == '-video' and sys.argv[3]:
         insertVideo = True
@@ -53,6 +52,8 @@ with urllib.request.urlopen(url) as response:
     soup = BS(html, "html.parser")
 
     customSelector = False
+    optPrice = None
+    optImgUrl = None
     customNote = ''
     if soup.find('div', {'class': 'input-box'}):
         customSelector = True
@@ -60,7 +61,9 @@ with urllib.request.urlopen(url) as response:
         selType = input('Is this an OPTION or a REQUIREMENT?\n')
         if selType.lower() in ['o', 'option', 'opt', 'opiton', 'opti', 'oo', 'ooo', 'optio', 'options']:
             option = input('Enter the option text:\n')
-            print('\033[91m' + '****MAKE SURE TO MANUALLY SET THE PRICE IN THE UPLOAD FILES!!!!****')
+            optPrice = input('Enter the option price:\n')
+            optImgUrl = input('Paste in the raw image url')
+            optImgUrl = uri_cleaner(optImgUrl)
         else:
             customNote = input('Enter the REQUIREMENT to append to tech notes:\n')
     elif soup.find('span', {'id': 'sku-id'}):
@@ -83,16 +86,21 @@ with urllib.request.urlopen(url) as response:
 
     description = replace_unicode_quotes(description)
 
-    price = soup.find('span', {'class': 'price'})
-    price = str(price.text)
-    price = price.replace('\n', '').replace(' ', '').replace('$', '').replace('>', '').replace('<', '')
+    if optPrice is not None:
+        price = optPrice
+    else:
+        price = soup.find('span', {'class': 'price'})
+        price = str(price.text)
+        price = price.replace('\n', '').replace(' ', '').replace('$', '').replace('>', '').replace('<', '')
 
-    mainImg = soup.find('img', {'id': 'image-main'})
-    mainImg = str(mainImg)
-    mainImgRe = r"\ssrc=\"(.*)\"\stitle"
-
-    mainImgMatch = re.findall(mainImgRe, mainImg)
-    mainImgUrl = uri_cleaner(mainImgMatch[0])
+    if optImgUrl is not None:
+        mainImg = optImgUrl
+    else:
+        mainImg = soup.find('img', {'id': 'image-main'})
+        mainImg = str(mainImg)
+        mainImgRe = r"\ssrc=\"(.*)\"\stitle"
+        mainImgMatch = re.findall(mainImgRe, mainImg)
+        mainImgUrl = uri_cleaner(mainImgMatch[0])
 
     # find all images
     imageSoup = soup.find_all('a', {'class': 'thumb-link'})
@@ -320,6 +328,14 @@ with urllib.request.urlopen(url) as response:
             writer.writerow(content)
             csvfile.close()
 
+        if type(content['Notes']) == list:
+            for note in content['Notes']:
+                note.replace('<u>', '')
+                note.replace('</u>', '')
+        else:
+            content['Notes'].replace('<u>', '')
+            content['Notes'].replace('</u>', '')
+
         # create jobber file
         jobberFileLocation = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\jobber_lines\\'
         if itemSku != '':
@@ -347,6 +363,12 @@ with urllib.request.urlopen(url) as response:
 
             jobberWriter.writeheader()
 
+            if len(allImages) == 0 and content['MainImg']:
+                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'],'Description': content['Description'],
+                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
+                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
+                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
+                                       'Image 1': content['MainImg']})
             if len(allImages) == 1:
                 jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'],'Description': content['Description'],
                                        'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
@@ -430,14 +452,6 @@ with urllib.request.urlopen(url) as response:
         amzFileFields = ['item_sku', 'item_name', 'part_number', 'standard_price', 'main_image_url', 'other_image_url1',
                          'other_image_url2', 'other_image_url3', 'product_description', 'bullet_point1', 'bullet_point2',
                          'bullet_point3', 'bullet_point4', 'bullet_point5']
-
-        if type(content['Notes']) == list:
-            for note in content['Notes']:
-                note.replace('<u>', '')
-                note.replace('</u>', '')
-        else:
-            content['Notes'].replace('<u>', '')
-            content['Notes'].replace('</u>', '')
 
         with open(amzFileFilename, 'w', newline='') as amzFileCsvFile:
             amzFileWriter = csv.DictWriter(amzFileCsvFile, fieldnames=amzFileFields)
