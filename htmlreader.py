@@ -119,7 +119,7 @@ with urllib.request.urlopen(url) as response:
         notes = [i.strip(' ') for i in notes]
         notes = [i.strip('<li>') for i in notes]
         notes = [i.strip('</li>') for i in notes]
-        if customSelector:
+        if customSelector and customNote != '':
             notes.append(f'Fits models with {customNote} ONLY!')
         notes = '; '.join(notes)
     elif len(featureData) == 1 and customSelector:
