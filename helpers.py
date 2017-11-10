@@ -8,12 +8,12 @@ def clean_directories():
 
     csvfiles = [name for name in os.listdir(gen_path + '\\csv')]
     if len(csvfiles) >= 1:
-        del_prompt = input('Do you wish to purge old files? [y/n]:  ')
-        if del_prompt.lower() == 'y':
-            for subdir in sub_dirs:
-                files = [name for name in os.listdir(gen_path + '\\' + subdir)]
-                for f in files:
-                    os.remove(gen_path + '\\' + subdir + '\\' + f)
+        for subdir in sub_dirs:
+            files = [name for name in os.listdir(gen_path + '\\' + subdir)]
+            for f in files:
+                os.remove(gen_path + '\\' + subdir + '\\' + f)
+    else:
+        print('There were no files to purge!')
 
 
 def uri_cleaner(uri):

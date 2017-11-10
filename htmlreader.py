@@ -29,10 +29,12 @@ if sys.argv[2]:
         insertVideo = True
         videoLink = sys.argv[3]
         print('Video Link Processed!')
+    elif sys.argv[2] == '-purge':
+        purge = input('Are you sure you want to purge all files [Y/N]?: ')
+        if purge.lower() == 'yes' or 'y' or 'ye' or 'si' or 'ja' or 'oui':
+            clean_directories()
 
 writeToFile = True
-
-clean_directories()
 
 with urllib.request.urlopen(url) as response:
 
@@ -43,9 +45,13 @@ with urllib.request.urlopen(url) as response:
     customSelector = False
     customNote = ''
     if soup.find('div', {'class': 'input-box'}):
-        itemSku = input('OPTION SELECTOR FOUND - MANUALLY ENTER SKU: \n')
         customSelector = True
-        customNote = input('Enter the custom attribute to append to tech notes:\n')
+        itemSku = input('OPTION SELECTOR FOUND - MANUALLY ENTER SKU: \n')
+        selType = input('Is this an OPTION or a REQUIREMENT?\n')
+        if selType.lower() in ['o', 'option', 'opt', 'opiton', 'opti', 'oo', 'ooo', 'optio', 'options']:
+            option = input('Enter the option text:\n')
+        else:
+            customNote = input('Enter the REQUIREMENT to append to tech notes:\n')
     elif soup.find('span', {'id': 'sku-id'}):
         itemSku = soup.find('span', {'id': 'sku-id'})
         itemSku = str(itemSku.text)
@@ -55,6 +61,10 @@ with urllib.request.urlopen(url) as response:
 
     title = soup.find('h1', {'itemprop': 'name'})
     title = str(title.text)
+    try:
+        title = title + ' ' + option
+    except NameError:
+        print('No custom options/requirements found')
 
     description = soup.find('p', {'id': 'product-description'})
     description = description.text
