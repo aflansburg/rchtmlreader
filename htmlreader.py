@@ -60,6 +60,7 @@ with urllib.request.urlopen(url) as response:
         selType = input('Is this an OPTION or a REQUIREMENT?\n')
         if selType.lower() in ['o', 'option', 'opt', 'opiton', 'opti', 'oo', 'ooo', 'optio', 'options']:
             option = input('Enter the option text:\n')
+            print('\033[91m' + '****MAKE SURE TO MANUALLY SET THE PRICE IN THE UPLOAD FILES!!!!****')
         else:
             customNote = input('Enter the REQUIREMENT to append to tech notes:\n')
     elif soup.find('span', {'id': 'sku-id'}):
@@ -429,6 +430,14 @@ with urllib.request.urlopen(url) as response:
         amzFileFields = ['item_sku', 'item_name', 'part_number', 'standard_price', 'main_image_url', 'other_image_url1',
                          'other_image_url2', 'other_image_url3', 'product_description', 'bullet_point1', 'bullet_point2',
                          'bullet_point3', 'bullet_point4', 'bullet_point5']
+
+        if type(content['Notes']) == list:
+            for note in content['Notes']:
+                note.replace('<u>', '')
+                note.replace('</u>', '')
+        else:
+            content['Notes'].replace('<u>', '')
+            content['Notes'].replace('</u>', '')
 
         with open(amzFileFilename, 'w', newline='') as amzFileCsvFile:
             amzFileWriter = csv.DictWriter(amzFileCsvFile, fieldnames=amzFileFields)
