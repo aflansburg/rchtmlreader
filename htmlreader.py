@@ -12,10 +12,11 @@ from helpers import replace_unicode_quotes
 from bs4 import BeautifulSoup as BS
 
 # TEST URLs
-#testUrl = "http://www.roughcountry.com/rc-ford-pocket-fender-flares-f-f11511c.html"
-testUrl="http://www.roughcountry.com/rc-ford-wheel-to-wheel-nerf-steps-rcf15cc.html"
-# url ="http://www.roughcountry.com/10-inch-x5-led-light-bar-76912.html" # item without fitment
+testUrl = "http://www.roughcountry.com/rc-ford-pocket-fender-flares-f-f11511c.html" # without video
+# testUrl="http://www.roughcountry.com/rc-ford-wheel-to-wheel-nerf-steps-rcf15cc.html" # with video
+# testUrl ="http://www.roughcountry.com/10-inch-x5-led-light-bar-76912.html" # item without fitment
 
+# test settings
 useTestUrl = False
 purgeFiles = False
 
