@@ -6,14 +6,17 @@ def clean_directories():
     gen_path = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files'
     sub_dirs = [d for d in os.listdir(gen_path)]
 
-    csvfiles = [name for name in os.listdir(gen_path + '\\csv')]
-    if len(csvfiles) >= 1:
+    # csvfiles = [name for name in os.listdir(gen_path + '\\csv')]
+    # if len(csvfiles) >= 1:
+    try:
         for subdir in sub_dirs:
             files = [name for name in os.listdir(gen_path + '\\' + subdir)]
             for f in files:
                 os.remove(gen_path + '\\' + subdir + '\\' + f)
-    else:
-        print('There were no files to purge!')
+    except PermissionError:
+        print('Files could not be purged - one must be open. Continuing.')
+    # else:
+    #     print('There were no files to purge!')
 
 
 def uri_cleaner(uri):

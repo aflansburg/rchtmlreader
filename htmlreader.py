@@ -12,36 +12,47 @@ from helpers import replace_unicode_quotes
 from bs4 import BeautifulSoup as BS
 
 # TEST URLs
-# url="http://www.roughcountry.com/jeep-suspension-lift-kit-609s.html" # item with fitment
-# url="http://www.roughcountry.com/neon-orange-shock-boot-87172.html" # shock boot
+#testUrl = "http://www.roughcountry.com/rc-ford-pocket-fender-flares-f-f11511c.html"
+testUrl="http://www.roughcountry.com/rc-ford-wheel-to-wheel-nerf-steps-rcf15cc.html"
 # url ="http://www.roughcountry.com/10-inch-x5-led-light-bar-76912.html" # item without fitment
 
-try:
-    if validators.url(sys.argv[1]):
-        url = str(sys.argv[1])
-        print("Url validated...")
-    else:
-        print('No valid URL supplied - exiting....')
+useTestUrl = False
+purgeFiles = False
+
+if not useTestUrl:
+    try:
+        if validators.url(sys.argv[1]):
+            url = str(sys.argv[1])
+            print("Url validated...")
+        else:
+            print('No valid URL supplied - exiting....')
+            exit(0)
+
+    except IndexError:
+        print('No URL supplied - exiting......')
         exit(0)
 
-except IndexError:
-    print('No URL supplied - exiting......')
-    exit(0)
+    videoLink = None
+    insertVideo = False
 
-videoLink = None
-insertVideo = False
-
-try:
-    if sys.argv[2] == '-video' and sys.argv[3]:
-        insertVideo = True
-        videoLink = sys.argv[3]
-        print('Video Link Processed!')
-    elif sys.argv[2] == '-purge':
+    try:
+        if sys.argv[2] == '-video' and sys.argv[3]:
+            insertVideo = True
+            videoLink = sys.argv[3]
+            print('Video Link Processed!')
+        elif sys.argv[2] == '-purge':
+            purge = input('Are you sure you want to purge all files [Y/N]?: ')
+            if purge.lower() == 'yes' or 'y' or 'ye' or 'si' or 'ja' or 'oui':
+                clean_directories()
+    except IndexError:
+        print('No arguments supplied....')
+elif useTestUrl:
+    videoLink = None
+    url = testUrl
+    if purgeFiles:
         purge = input('Are you sure you want to purge all files [Y/N]?: ')
         if purge.lower() == 'yes' or 'y' or 'ye' or 'si' or 'ja' or 'oui':
             clean_directories()
-except IndexError:
-    print('No arguments supplied....')
 
 writeToFile = True
 
@@ -62,7 +73,7 @@ with urllib.request.urlopen(url) as response:
         if selType.lower() in ['o', 'option', 'opt', 'opiton', 'opti', 'oo', 'ooo', 'optio', 'options']:
             option = input('Enter the option text:\n')
             optPrice = input('Enter the option price:\n')
-            optImgUrl = input('Paste in the raw image url')
+            optImgUrl = input('Paste in the raw image url:\n')
             optImgUrl = uri_cleaner(optImgUrl)
         else:
             customNote = input('Enter the REQUIREMENT to append to tech notes:\n')
@@ -94,7 +105,7 @@ with urllib.request.urlopen(url) as response:
         price = price.replace('\n', '').replace(' ', '').replace('$', '').replace('>', '').replace('<', '')
 
     if optImgUrl is not None:
-        mainImg = optImgUrl
+        mainImgUrl = uri_cleaner(optImgUrl)
     else:
         mainImg = soup.find('img', {'id': 'image-main'})
         mainImg = str(mainImg)
@@ -114,6 +125,16 @@ with urllib.request.urlopen(url) as response:
         img = imgM[0]
         img = uri_cleaner(img)
         allImages.append(img)
+
+    # find video link
+    allVids = []
+    videoSoup = soup.find_all('a', {'id': 'media-vid-0'})
+
+    if len(videoSoup) > 0:
+        for vid in videoSoup:
+            videoLink = vid['href']
+            vidImg = vid.find_all('img')
+            vidImg = uri_cleaner(vidImg[0]['src'])
 
     featureData = []
 
@@ -599,12 +620,13 @@ with urllib.request.urlopen(url) as response:
                     scRowData['walmart attr:shelf description'] = walmartShelf
                 if walmartShort:
                     scRowData['walmart attr:short description'] = walmartShort
-                if (content['MainImg']):
+                if content['MainImg']:
                     scRowData['image file'] = content['MainImg']
-                if(allImages):
+                if allImages:
                     scImages = allImages
                     if scRowData:
-                        scImages.remove(content['MainImg'])
+                        if content['MainImg'] in scImages:
+                            scImages.remove(content['MainImg'])
                     for sImg in scImages:
                         imgKey = scImages.index(sImg) + 1
                         imgKeyStr = 'alternate image file ' + str(imgKey)
