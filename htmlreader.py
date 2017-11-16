@@ -93,10 +93,12 @@ with urllib.request.urlopen(url) as response:
         print('No custom options/requirements found')
 
     description = soup.find('p', {'id': 'product-description'})
-    description = description.text
-    description = description.replace(' Read More', '').rstrip(' ')
-
-    description = replace_unicode_quotes(description)
+    if description is not None:
+        description = description.text
+        description = description.replace(' Read More', '').rstrip(' ')
+        description = replace_unicode_quotes(description)
+    else:
+        description = title
 
     if optPrice is not None:
         price = optPrice
