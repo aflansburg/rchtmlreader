@@ -626,7 +626,10 @@ with urllib.request.urlopen(url) as response:
                 if content['MainImg']:
                     scRowData['image file'] = content['MainImg']
                 if allImages:
-                    scImages = allImages
+                    scImages = []
+                    for image in allImages:
+                        if allImages.index(image) < 9:
+                            scImages.append(image)
                     if scRowData:
                         if content['MainImg'] in scImages:
                             scImages.remove(content['MainImg'])
