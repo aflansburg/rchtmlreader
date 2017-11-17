@@ -6,9 +6,7 @@ import urllib.request
 import sys
 import validators
 from subprocess import call
-from helpers import clean_directories
-from helpers import uri_cleaner
-from helpers import replace_unicode_quotes
+import helpers
 from bs4 import BeautifulSoup as BS
 
 # TEST URLs
@@ -44,7 +42,7 @@ if not useTestUrl:
         elif sys.argv[2] == '-purge':
             purge = input('Are you sure you want to purge all files [Y/N]?: ')
             if purge.lower() == 'yes' or 'y' or 'ye' or 'si' or 'ja' or 'oui':
-                clean_directories()
+                helpers.clean_directories()
     except IndexError:
         print('No arguments supplied....')
 elif useTestUrl:
@@ -53,7 +51,7 @@ elif useTestUrl:
     if purgeFiles:
         purge = input('Are you sure you want to purge all files [Y/N]?: ')
         if purge.lower() == 'yes' or 'y' or 'ye' or 'si' or 'ja' or 'oui':
-            clean_directories()
+            helpers.clean_directories()
 
 writeToFile = True
 
@@ -75,7 +73,7 @@ with urllib.request.urlopen(url) as response:
             option = input('Enter the option text:\n')
             optPrice = input('Enter the option price:\n')
             optImgUrl = input('Paste in the raw image url:\n')
-            optImgUrl = uri_cleaner(optImgUrl)
+            optImgUrl = helpers.uri_cleaner(optImgUrl)
         else:
             customNote = input('Enter the REQUIREMENT to append to tech notes:\n')
     elif soup.find('span', {'id': 'sku-id'}):
@@ -96,7 +94,7 @@ with urllib.request.urlopen(url) as response:
     if description is not None:
         description = description.text
         description = description.replace(' Read More', '').rstrip(' ')
-        description = replace_unicode_quotes(description)
+        description = helpers.replace_unicode_quotes(description)
     else:
         description = title
 
@@ -108,13 +106,13 @@ with urllib.request.urlopen(url) as response:
         price = price.replace('\n', '').replace(' ', '').replace('$', '').replace('>', '').replace('<', '')
 
     if optImgUrl is not None:
-        mainImgUrl = uri_cleaner(optImgUrl)
+        mainImgUrl = helpers.uri_cleaner(optImgUrl)
     else:
         mainImg = soup.find('img', {'id': 'image-main'})
         mainImg = str(mainImg)
         mainImgRe = r"\ssrc=\"(.*)\"\stitle"
         mainImgMatch = re.findall(mainImgRe, mainImg)
-        mainImgUrl = uri_cleaner(mainImgMatch[0])
+        mainImgUrl = helpers.uri_cleaner(mainImgMatch[0])
 
     # find all images
     imageSoup = soup.find_all('a', {'class': 'thumb-link'})
@@ -126,8 +124,10 @@ with urllib.request.urlopen(url) as response:
         imgRe = r"http.*.jpg"
         imgM = re.findall(imgRe, img)
         img = imgM[0]
-        img = uri_cleaner(img)
+        img = helpers.uri_cleaner(img)
         allImages.append(img)
+
+    allImages = helpers.check_imagelinks(allImages)
 
     # find video link
     allVids = []
@@ -137,7 +137,7 @@ with urllib.request.urlopen(url) as response:
         for vid in videoSoup:
             videoLink = vid['href']
             vidImg = vid.find_all('img')
-            vidImg = uri_cleaner(vidImg[0]['src'])
+            vidImg = helpers.uri_cleaner(vidImg[0]['src'])
 
     featureData = []
 

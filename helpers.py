@@ -1,5 +1,7 @@
 import os
 import re
+import urllib.request
+import urllib.error
 
 
 def clean_directories():
@@ -31,8 +33,26 @@ def uri_cleaner(uri):
 
 
 def replace_unicode_quotes(string):
-    uni_quotes = ['\u2019', '\u0022', '\u8220',
-                  '\u8221', '\u201C', '\u201D']
+    uni_quotes = ['\u2019']
+    dob_quotes = ['\u0022', '\u201C', '\u201D']
     for ucp in uni_quotes:
-        string = string.replace(ucp, '"')
+        string = string.replace(ucp, "'")
+    for dob in dob_quotes:
+        string = string.replace(dob, '"')
     return string
+
+
+def check_imagelinks(imglist):
+    for img in imglist:
+        try:
+            with urllib.request.urlopen(img) as response:
+                headers = list(response.getheaders())
+
+                if ('Content-Type', 'image/jpeg') not in headers:
+                    print('*** Bad/broken image link found, removing url:\n' + 'img')
+                    imglist.pop(imglist.index(img))
+        except urllib.error.HTTPError:
+            print('*** Bad/broken image link found, removing url:\n' + 'img')
+            imglist.pop(imglist.index(img))
+    return imglist
+
