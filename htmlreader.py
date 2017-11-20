@@ -1,57 +1,53 @@
 import csv
 import datetime
-import json
 import re
 import urllib.request
 import sys
-import validators
 from subprocess import call
 import helpers
-from bs4 import BeautifulSoup as BS
+import creators
+from bs4 import BeautifulSoup as bS
+from cli_augments import ConsoleColors as cColors
+from cli_augments import arg_parser
 
 # TEST URLs
-testUrl = "http://www.roughcountry.com/rc-ford-pocket-fender-flares-f-f11511c.html" # without video
+testUrl = "http://www.roughcountry.com/rc-ford-pocket-fender-flares-f-f11511c.html"  # without video
 # testUrl="http://www.roughcountry.com/rc-ford-wheel-to-wheel-nerf-steps-rcf15cc.html" # with video
 # testUrl ="http://www.roughcountry.com/10-inch-x5-led-light-bar-76912.html" # item without fitment
 
 # test settings
 useTestUrl = False
 purgeFiles = False
+newItem = False
+weight = ''
+upc = ''
+video_link = None
 
-if not useTestUrl:
-    try:
-        if validators.url(sys.argv[1]):
-            url = str(sys.argv[1])
-            print("Url validated...")
-        else:
-            print('No valid URL supplied - exiting....')
-            exit(0)
+# parse arguments
+processedArgs = arg_parser(sys.argv)
 
-    except IndexError:
-        print('No URL supplied - exiting......')
-        exit(0)
+if type(processedArgs) == str:
+    url = processedArgs
+    print(url)
+elif type(processedArgs) == dict:
+    url = processedArgs['URL']
+    if 'UPC' in processedArgs:
+        upc = processedArgs['UPC']
+    if 'Weight' in processedArgs:
+        weight = processedArgs['Weight']
+    if 'Video Link' in processedArgs:
+        video_link = processedArgs['Video Link']
+else:
+    print('\nNo valid URL was supplied. Program will now terminate.')
+    exit(0)
 
-    videoLink = None
-    insertVideo = False
+if 'UPC' in processedArgs:
+    upc = processedArgs['UPC']
+if 'Weight' in processedArgs:
+    weight = processedArgs['Weight']
+if 'Video Link' in processedArgs:
+    video_link = processedArgs['Video Link']
 
-    try:
-        if sys.argv[2] == '-video' and sys.argv[3]:
-            insertVideo = True
-            videoLink = sys.argv[3]
-            print('Video Link Processed!')
-        elif sys.argv[2] == '-purge':
-            purge = input('Are you sure you want to purge all files [Y/N]?: ')
-            if purge.lower() == 'yes' or 'y' or 'ye' or 'si' or 'ja' or 'oui':
-                helpers.clean_directories()
-    except IndexError:
-        print('No arguments supplied....')
-elif useTestUrl:
-    videoLink = None
-    url = testUrl
-    if purgeFiles:
-        purge = input('Are you sure you want to purge all files [Y/N]?: ')
-        if purge.lower() == 'yes' or 'y' or 'ye' or 'si' or 'ja' or 'oui':
-            helpers.clean_directories()
 
 writeToFile = True
 
@@ -59,23 +55,24 @@ with urllib.request.urlopen(url) as response:
 
     html = response.read()
 
-    soup = BS(html, "html.parser")
+    soup = bS(html, "html.parser")
 
     customSelector = False
     optPrice = None
     optImgUrl = None
     customNote = ''
+    option = None
     if soup.find('div', {'class': 'input-box'}):
         customSelector = True
-        itemSku = input('OPTION SELECTOR FOUND - MANUALLY ENTER SKU: \n')
-        selType = input('Is this an OPTION or a REQUIREMENT?\n')
-        if selType.lower() in ['o', 'option', 'opt', 'opiton', 'opti', 'oo', 'ooo', 'optio', 'options']:
-            option = input('Enter the option text:\n')
-            optPrice = input('Enter the option price:\n')
-            optImgUrl = input('Paste in the raw image url:\n')
+        itemSku = input(cColors.WARNING + '\nOPTION SELECTOR FOUND - MANUALLY ENTER SKU: \n' + cColors.ENDC)
+        selType = input(cColors.WARNING + '\nIs this an OPTION or a REQUIREMENT?' + cColors.ENDC)
+        if selType.lower() in ['o', 'option', 'opt', 'opiton', 'opti', 'oo', 'ooo', 'optio', 'options', 'op', 'otp']:
+            option = input(cColors.WARNING + '\nEnter the option text:\n' + cColors.ENDC)
+            optPrice = input(cColors.WARNING + '\nEnter the option price:\n' + cColors.ENDC)
+            optImgUrl = input(cColors.WARNING + '\nPlease paste in the raw image url:\n' + cColors.ENDC)
             optImgUrl = helpers.uri_cleaner(optImgUrl)
         else:
-            customNote = input('Enter the REQUIREMENT to append to tech notes:\n')
+            customNote = input(cColors.WARNING + 'Enter the REQUIREMENT to append to tech notes:\n' + cColors.ENDC)
     elif soup.find('span', {'id': 'sku-id'}):
         itemSku = soup.find('span', {'id': 'sku-id'})
         itemSku = str(itemSku.text)
@@ -85,10 +82,6 @@ with urllib.request.urlopen(url) as response:
 
     title = soup.find('h1', {'itemprop': 'name'})
     title = str(title.text)
-    try:
-        title = title + ' ' + option
-    except NameError:
-        print('No custom options/requirements found')
 
     description = soup.find('p', {'id': 'product-description'})
     if description is not None:
@@ -191,7 +184,6 @@ with urllib.request.urlopen(url) as response:
     fitMatches = re.findall(regex, fitmentDataString)
 
     fitments = []
-    m = None
     for match in fitMatches:
         m = match.replace("<tbody>", "").replace("<tr>", "").replace("<td>", "").replace("</td>", " ")
     if m is not None:
@@ -252,12 +244,14 @@ with urllib.request.urlopen(url) as response:
             'SKU': itemSku,
             'Description': description,
             'Price': price,
-            'Features': '; '.join(features),
+            'Features': '; '.join(features).replace('.', ''),
             'Notes': notes,
             'Specs': specs,
             'Fitment': fitments,
             'In The Box': boxContents,
-            'MainImg': mainImgUrl
+            'MainImg': mainImgUrl,
+            'Weight': weight,
+            'UPC': upc
         }
     elif boxContents is not None:
         content = {
@@ -269,7 +263,9 @@ with urllib.request.urlopen(url) as response:
             'Notes': notes,
             'Specs': specs,
             'In The Box': boxContents,
-            'MainImg': mainImgUrl
+            'MainImg': mainImgUrl,
+            'Weight': weight,
+            'UPC': upc
         }
     else:
         content = {
@@ -280,11 +276,15 @@ with urllib.request.urlopen(url) as response:
             'Features': '; '.join(features),
             'Notes': notes,
             'Specs': specs,
-            'MainImg': mainImgUrl
+            'MainImg': mainImgUrl,
+            'Weight': weight,
+            'UPC': upc
         }
 
-    if videoLink:
+    if videoLink is not None:
         content['video_link'] = videoLink
+    else:
+        content['video_link'] = ''
 
     delKV = [k for k, v, in content.items() if v is None]
     for k in delKV:
@@ -295,9 +295,6 @@ with urllib.request.urlopen(url) as response:
         picCount += 1
         keyStr = f'Image {picCount}'
         content[keyStr] = pic
-
-    # at this point 'content' is a well structured JSON-type dict that could be exported
-    print(json.dumps(content, sort_keys=True, indent=4))
 
     if writeToFile:
 
@@ -318,7 +315,7 @@ with urllib.request.urlopen(url) as response:
         try:
             open(filename, "r+")
         except FileNotFoundError:
-            print("File doesn't exist. Continuing....")
+            print(cColors.WARNING + "\nMaster csv doesn't exist. Creating...." + cColors.ENDC)
         except PermissionError:
             filename = fileLocation + itemSku + '_' + now + '.csv'
 
@@ -360,206 +357,43 @@ with urllib.request.urlopen(url) as response:
             content['Notes'].replace('<u>', '')
             content['Notes'].replace('</u>', '')
 
-        # create jobber file
-        jobberFileLocation = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\jobber_lines\\'
-        if itemSku != '':
-            jobberFilename = jobberFileLocation + itemSku + '_jobber.csv'
-        else:
-            jobberFilename = jobberFileLocation + 'Item_' + now + '_jobber.csv'
+        # create jobber
+        creators.create_jobber(content, allImages)
 
-        try:
-            open(jobberFilename, "r+")
-        except FileNotFoundError:
-            print("File doesn't exist. Continuing....")
-        except PermissionError:
-            jobberFilename = jobberFileLocation + itemSku + '_' + now + '_jobber.csv'
+        # create Amazon-friendly upload CSV file
+        creators.create_amazon(content, allImages)
 
-        jobberFields = ['MPN', 'Item Type', 'MAP', 'Discount %', 'Your Cost', 'Title',
-                        'Strut/Shock Series', 'Start Year', 'End Year', 'Make',
-                        'Model', 'Drive', 'Combined Fitment', 'Description', 'Kit Contents',
-                        'Benefits', 'Technical Notes', 'Item Specifics', 'Weight (Lbs)',
-                        'US Shipping', 'CAN Shipping', 'Image 1', 'Image 2', 'Image 3', 'Image 4',
-                        'Image 5', 'Image 6', 'Image 7', 'Image 8', 'Image 9', 'Superseded', 'Warranty',
-                        'UPC Code', 'Flat Discount %']
-        
-        with open(jobberFilename, 'w', newline='') as jobberCsvFile:
-            jobberWriter = csv.DictWriter(jobberCsvFile, fieldnames=jobberFields)
-
-            jobberWriter.writeheader()
-
-            if len(allImages) == 0 and content['MainImg']:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'],'Description': content['Description'],
-                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
-                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
-                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
-                                       'Image 1': content['MainImg']})
-            if len(allImages) == 1:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'],'Description': content['Description'],
-                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
-                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
-                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
-                                       'Image 1': allImages[0]})
-            if len(allImages) == 2:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
-                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
-                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
-                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
-                                       'Image 1': allImages[0], 'Image 2': allImages[1]})
-            if len(allImages) == 3:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
-                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
-                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
-                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
-                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2]})
-            if len(allImages) == 4:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
-                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
-                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
-                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
-                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
-                                       'Image 4': allImages[3]})
-            if len(allImages) == 5:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
-                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
-                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
-                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
-                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
-                                       'Image 4': allImages[3], 'Image 5': allImages[4]})
-            if len(allImages) == 6:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
-                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
-                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
-                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
-                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
-                                       'Image 4': allImages[3], 'Image 5': allImages[4], 'Image 6': allImages[5]})
-            if len(allImages) == 7:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
-                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
-                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
-                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
-                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
-                                       'Image 4': allImages[3], 'Image 5': allImages[4], 'Image 6': allImages[5],
-                                       'Image 7': allImages[6]})
-            if len(allImages) == 8:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
-                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
-                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
-                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
-                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
-                                       'Image 4': allImages[3], 'Image 5': allImages[4], 'Image 6': allImages[5],
-                                       'Image 7': allImages[6], 'Image 8': allImages[7]})
-            if len(allImages) >= 9:
-                jobberWriter.writerow({'MPN': content['SKU'], 'Title': content['Title'], 'Description': content['Description'],
-                                       'Benefits': content['Features'], 'Combined Fitment': content['Fitment'],
-                                       'Kit Contents': content['In The Box'], 'Technical Notes': content['Notes'],
-                                       'MAP': content['Price'], 'Item Specifics': content['Specs'],
-                                       'Image 1': allImages[0], 'Image 2': allImages[1], 'Image 3': allImages[2],
-                                       'Image 4': allImages[3], 'Image 5': allImages[4], 'Image 6': allImages[5],
-                                       'Image 7': allImages[6], 'Image 8': allImages[7], 'Image 9': allImages[8]})
-
-            jobberCsvFile.close()
-
-        ## create amzFile file
-        amzFileFileLocation = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\amzFiles\\'
-        if itemSku != '':
-            amzFileFilename = amzFileFileLocation + itemSku + '_amzFile.csv'
-        else:
-            amzFileFilename = amzFileFileLocation + 'Item_' + now + '_amzFile.csv'
-        
-        try:
-            open(amzFileFilename, "r+")
-        except FileNotFoundError:
-            print("File doesn't exist. Continuing....")
-        except PermissionError:
-            amzFileFilename = amzFileFileLocation + itemSku + '_' + now + '_amzFile.csv'
-
-        amzFileFields = ['item_sku', 'item_name', 'part_number', 'standard_price', 'main_image_url', 'other_image_url1',
-                         'other_image_url2', 'other_image_url3', 'product_description', 'bullet_point1', 'bullet_point2',
-                         'bullet_point3', 'bullet_point4', 'bullet_point5']
-
-        with open(amzFileFilename, 'w', newline='') as amzFileCsvFile:
-            amzFileWriter = csv.DictWriter(amzFileCsvFile, fieldnames=amzFileFields)
-
-            amzFileWriter.writeheader()
-
-            if len(allImages) == 0:
-                amzFileWriter.writerow({'item_sku': content['SKU'], 'product_description': content['Description'],
-                                        'item_name': content['Title'], 'bullet_point1': 'Features: ' +
-                                        content['Features'], 'bullet_point2': 'Fits: ' + content['Fitment'],
-                                       'bullet_point4': 'Kit Contents: ' + content['In The Box'],
-                                        'part_number': content['SKU'], 'bullet_point3': 'Notes: ' + content['Notes'],
-                                        'standard_price': content['Price'], 'bullet_point5': 'Specs: ' +
-                                        content['Specs'], 'main_image_url': content['MainImg']})
-
-            if len(allImages) == 1:
-                amzFileWriter.writerow({'item_sku': content['SKU'], 'product_description': content['Description'],
-                                        'item_name': content['Title'], 'bullet_point1': 'Features: ' +
-                                        content['Features'], 'bullet_point2': 'Fits: ' + content['Fitment'],
-                                       'bullet_point4': 'Kit Contents: ' + content['In The Box'],
-                                        'part_number': content['SKU'], 'bullet_point3': 'Notes: ' + content['Notes'],
-                                        'standard_price': content['Price'], 'bullet_point5': 'Specs: ' +
-                                        content['Specs'], 'main_image_url': allImages[0]})
-            if len(allImages) == 2:
-                amzFileWriter.writerow({'item_sku': content['SKU'], 'product_description': content['Description'],
-                                        'item_name': content['Title'], 'bullet_point1': 'Features: ' +
-                                        content['Features'], 'bullet_point2': 'Fits: ' + content['Fitment'],
-                                       'bullet_point4': 'Kit Contents: ' + content['In The Box'],
-                                        'part_number': content['SKU'], 'bullet_point3': 'Notes: ' + content['Notes'],
-                                        'standard_price': content['Price'], 'bullet_point5': 'Specs: ' +
-                                        content['Specs'], 'main_image_url': allImages[0],
-                                        'other_image_url1': allImages[1]})
-            if len(allImages) == 3:
-                amzFileWriter.writerow({'item_sku': content['SKU'], 'product_description': content['Description'],
-                                        'item_name': content['Title'], 'bullet_point1': 'Features: ' +
-                                        content['Features'], 'bullet_point2': 'Fits: ' + content['Fitment'],
-                                       'bullet_point4': 'Kit Contents: ' + content['In The Box'],
-                                        'part_number': content['SKU'], 'bullet_point3': 'Notes: ' + content['Notes'],
-                                        'standard_price': content['Price'], 'bullet_point5': 'Specs: ' +
-                                        content['Specs'], 'main_image_url': allImages[0],
-                                        'other_image_url1': allImages[1], 'other_image_url2': allImages[2]})
-            if len(allImages) >= 4:
-                amzFileWriter.writerow({'item_sku': content['SKU'], 'product_description': content['Description'],
-                                        'item_name': content['Title'], 'bullet_point1': 'Features: ' +
-                                        content['Features'], 'bullet_point2': 'Fits: ' + content['Fitment'],
-                                       'bullet_point4': 'Kit Contents: ' + content['In The Box'],
-                                        'part_number': content['SKU'], 'bullet_point3': 'Notes: ' + content['Notes'],
-                                        'standard_price': content['Price'], 'bullet_point5': 'Specs: ' +
-                                        content['Specs'], 'main_image_url': allImages[0],
-                                        'other_image_url1': allImages[1], 'other_image_url2': allImages[2],
-                                        'other_image_url3': allImages[3]})
-
-            amzFileCsvFile.close()
-        
-
-        print(f'File created: {filename}')
-        print('Jobber file created: ' + jobberFilename)
-        print('Amazon file created: ' + amzFileFilename)
-
-        call(["node", "C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\WebstormProjects\\template_builder\\maketemplate.js", filename])
+        call(["node", "C:\\Users\\aflansburg\\Dropbox\\Business\\Rough "
+                      "Country\\WebstormProjects\\template_builder\\maketemplate.js", filename])
 
         # generating SC new prod row
-        if (content['SKU']):
-            eTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\templates\\ebay_desc-' +
+        if content['SKU']:
+            eTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
+                         'Country\\generated_files\\templates\\ebay_desc-' +
                          itemSku + '.html', 'r')
             ebayTemplate = eTemp.read()
             eTemp.close()
 
-            aTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\templates\\amz_desc-' +
+            aTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
+                         'Country\\generated_files\\templates\\amz_desc-' +
                          itemSku + '.html', 'r')
             amazonTemplate = aTemp.read()
             aTemp.close()
 
-            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\walmartFiles\\wal_desc_' +
+            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
+                         'Country\\generated_files\\walmartFiles\\wal_desc_' +
                          itemSku + '.html', 'r')
             walmartDesc = wTemp.read()
             wTemp.close()
 
-            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\walmartFiles\\wal_shelf_' +
+            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
+                         'Country\\generated_files\\walmartFiles\\wal_shelf_' +
                          itemSku + '.html', 'r')
             walmartShelf = wTemp.read()
             wTemp.close()
 
-            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\walmartFiles\\wal_short_' +
+            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
+                         'Country\\generated_files\\walmartFiles\\wal_short_' +
                          itemSku + '.html', 'r')
             walmartShort = wTemp.read()
             wTemp.close()
@@ -594,7 +428,7 @@ with urllib.request.urlopen(url) as response:
             try:
                 open(scFilename, "r+")
             except FileNotFoundError:
-                print("File doesn't exist. Continuing....")
+                print(cColors.WARNING + "\nSolid Commerce Import file doesn't exist. Creating...." + cColors.ENDC)
             except PermissionError:
                 scFilename = scFileLoc + itemSku + '_' + now + '_sc-line.csv'
 
@@ -606,13 +440,13 @@ with urllib.request.urlopen(url) as response:
                 # map to the appropriate keys/field names
                 scRowData = {}
 
-                if (content['SKU']):
+                if content['SKU']:
                     scRowData['product custom sku'] = content['SKU']
                     scRowData['warehouse id'] = content['SKU']
                     scRowData['model number'] = content['SKU']
-                if (content['Title']):
+                if content['Title']:
                     scRowData['product name'] = content['SKU'] + ' - ' + content['Title']
-                if (content['Price']):
+                if content['Price']:
                     scRowData['msrp'] = content['Price']
                 if ebayTemplate:
                     scRowData['eBay Description'] = ebayTemplate
@@ -637,6 +471,8 @@ with urllib.request.urlopen(url) as response:
                         imgKey = scImages.index(sImg) + 1
                         imgKeyStr = 'alternate image file ' + str(imgKey)
                         scRowData[imgKeyStr] = sImg
+                scRowData['upc'] = content['UPC']
+                scRowData['product weight'] = weight * 16
                 scRowData['taxable'] = 'Yes'
                 scRowData['warehouse name'] = 'Rough Country'
                 scRowData['manufacturer'] = 'Rough Country'
@@ -645,4 +481,6 @@ with urllib.request.urlopen(url) as response:
             scFile.close()
 
         else:
-            print('due to file name issues, the SC template cannot be automatically generated')
+            print('Due to a file name conflict, the SC template cannot be automatically generated')
+
+print(cColors.HEADER + '\nProcesses completed succesfully!')

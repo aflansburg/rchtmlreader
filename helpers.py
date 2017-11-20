@@ -2,23 +2,25 @@ import os
 import re
 import urllib.request
 import urllib.error
+import csv
+from cli_augments import ConsoleColors as cColors
 
 
 def clean_directories():
     gen_path = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files'
     sub_dirs = [d for d in os.listdir(gen_path)]
+    file_rm_count = 0
 
-    # csvfiles = [name for name in os.listdir(gen_path + '\\csv')]
-    # if len(csvfiles) >= 1:
     try:
         for subdir in sub_dirs:
+            file_rm_count += 1
             files = [name for name in os.listdir(gen_path + '\\' + subdir)]
             for f in files:
                 os.remove(gen_path + '\\' + subdir + '\\' + f)
+        print(f'\n{file_rm_count} files were purged.')
     except PermissionError:
-        print('Files could not be purged - one must be open. Continuing.')
-    # else:
-    #     print('There were no files to purge!')
+        print(cColors.FAIL + '\nFiles could not be purged due to file being open. Files will not be purged.\n' +
+              cColors.ENDC)
 
 
 def uri_cleaner(uri):
@@ -49,10 +51,25 @@ def check_imagelinks(imglist):
                 headers = list(response.getheaders())
 
                 if ('Content-Type', 'image/jpeg') not in headers:
-                    print('*** Bad/broken image link found, removing url:\n' + 'img')
+                    print(cColors.FAIL + '\n*** Bad/broken image link found, removing url:\n' + img + '\n' +
+                          cColors.ENDC)
                     imglist.pop(imglist.index(img))
         except urllib.error.HTTPError:
-            print('*** Bad/broken image link found, removing url:\n' + 'img')
+            print(cColors.FAIL + '\n*** Bad/broken image link found, removing url:\n' + img + '\n' + cColors.ENDC)
             imglist.pop(imglist.index(img))
     return imglist
 
+
+def ship_rate(wt):
+    weight = float(wt)
+    weight = int(round(weight))
+    rates_file = 'data/int_ship_rates.csv'
+
+    rates = {}
+
+    with open(rates_file, newline='') as csvfile:
+        rate_reader = csv.DictReader(csvfile, delimiter=',')
+        for row in rate_reader:
+            rates[row['weight']] = row['cost']
+
+    return rates[str(weight)]
