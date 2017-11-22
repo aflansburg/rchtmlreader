@@ -1,26 +1,8 @@
-import os
 import re
 import urllib.request
 import urllib.error
 import csv
 from cli_augments import ConsoleColors as cColors
-
-
-def clean_directories():
-    gen_path = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files'
-    sub_dirs = [d for d in os.listdir(gen_path)]
-    file_rm_count = 0
-
-    try:
-        for subdir in sub_dirs:
-            file_rm_count += 1
-            files = [name for name in os.listdir(gen_path + '\\' + subdir)]
-            for f in files:
-                os.remove(gen_path + '\\' + subdir + '\\' + f)
-        print(f'\n{file_rm_count} files were purged.')
-    except PermissionError:
-        print(cColors.FAIL + '\nFiles could not be purged due to file being open. Files will not be purged.\n' +
-              cColors.ENDC)
 
 
 def uri_cleaner(uri):
@@ -47,13 +29,14 @@ def replace_unicode_quotes(string):
 def check_imagelinks(imglist):
     for img in imglist:
         try:
-            with urllib.request.urlopen(img) as response:
-                headers = list(response.getheaders())
+            if img != '':
+                with urllib.request.urlopen(img) as response:
+                    headers = list(response.getheaders())
 
-                if ('Content-Type', 'image/jpeg') not in headers:
-                    print(cColors.FAIL + '\n*** Bad/broken image link found, removing url:\n' + img + '\n' +
-                          cColors.ENDC)
-                    imglist.pop(imglist.index(img))
+                    if ('Content-Type', 'image/jpeg') not in headers:
+                        print(cColors.FAIL + '\n*** Bad/broken image link found, removing url:\n' + img + '\n' +
+                              cColors.ENDC)
+                        imglist.pop(imglist.index(img))
         except urllib.error.HTTPError:
             print(cColors.FAIL + '\n*** Bad/broken image link found, removing url:\n' + img + '\n' + cColors.ENDC)
             imglist.pop(imglist.index(img))

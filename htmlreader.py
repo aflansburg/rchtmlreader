@@ -2,485 +2,489 @@ import csv
 import datetime
 import re
 import urllib.request
-import sys
+import urllib.error
 from subprocess import call
 import helpers
 import creators
 from bs4 import BeautifulSoup as bS
 from cli_augments import ConsoleColors as cColors
-from cli_augments import arg_parser
-
-# TEST URLs
-testUrl = "http://www.roughcountry.com/rc-ford-pocket-fender-flares-f-f11511c.html"  # without video
-# testUrl="http://www.roughcountry.com/rc-ford-wheel-to-wheel-nerf-steps-rcf15cc.html" # with video
-# testUrl ="http://www.roughcountry.com/10-inch-x5-led-light-bar-76912.html" # item without fitment
-
-# test settings
-useTestUrl = False
-purgeFiles = False
-newItem = False
-weight = ''
-upc = ''
-video_link = None
-
-# parse arguments
-processedArgs = arg_parser(sys.argv)
-
-if type(processedArgs) == str:
-    url = processedArgs
-    print(url)
-elif type(processedArgs) == dict:
-    url = processedArgs['URL']
-    if 'UPC' in processedArgs:
-        upc = processedArgs['UPC']
-    if 'Weight' in processedArgs:
-        weight = processedArgs['Weight']
-    if 'Video Link' in processedArgs:
-        video_link = processedArgs['Video Link']
-else:
-    print('\nNo valid URL was supplied. Program will now terminate.')
-    exit(0)
-
-if 'UPC' in processedArgs:
-    upc = processedArgs['UPC']
-if 'Weight' in processedArgs:
-    weight = processedArgs['Weight']
-if 'Video Link' in processedArgs:
-    video_link = processedArgs['Video Link']
 
 
-writeToFile = True
+def read_page(arg, opts):
+    write_to_file = True
+    append_to_file = False
+    weight = ''
+    upc = ''
+    video_link = ''
 
-with urllib.request.urlopen(url) as response:
-
-    html = response.read()
-
-    soup = bS(html, "html.parser")
-
-    customSelector = False
-    optPrice = None
-    optImgUrl = None
-    customNote = ''
-    option = None
-    if soup.find('div', {'class': 'input-box'}):
-        customSelector = True
-        itemSku = input(cColors.WARNING + '\nOPTION SELECTOR FOUND - MANUALLY ENTER SKU: \n' + cColors.ENDC)
-        selType = input(cColors.WARNING + '\nIs this an OPTION or a REQUIREMENT?' + cColors.ENDC)
-        if selType.lower() in ['o', 'option', 'opt', 'opiton', 'opti', 'oo', 'ooo', 'optio', 'options', 'op', 'otp']:
-            option = input(cColors.WARNING + '\nEnter the option text:\n' + cColors.ENDC)
-            optPrice = input(cColors.WARNING + '\nEnter the option price:\n' + cColors.ENDC)
-            optImgUrl = input(cColors.WARNING + '\nPlease paste in the raw image url:\n' + cColors.ENDC)
-            optImgUrl = helpers.uri_cleaner(optImgUrl)
-        else:
-            customNote = input(cColors.WARNING + 'Enter the REQUIREMENT to append to tech notes:\n' + cColors.ENDC)
-    elif soup.find('span', {'id': 'sku-id'}):
-        itemSku = soup.find('span', {'id': 'sku-id'})
-        itemSku = str(itemSku.text)
+    # need to fix this implementation
+    if opts is not None:
+        if type(opts) == bool:
+            if opts:
+                append_to_file = True
+    if type(arg) == dict:
+        url = arg['URL']
+        upc = arg['UPC']
+        weight = arg['Weight']
+        video_link = arg['Video Link']
     else:
-        itemSku = soup.find('span', {'itemprop': 'sku'})
-        itemSku = str(itemSku.text)
-
-    title = soup.find('h1', {'itemprop': 'name'})
-    title = str(title.text)
-
-    description = soup.find('p', {'id': 'product-description'})
-    if description is not None:
-        description = description.text
-        description = description.replace(' Read More', '').rstrip(' ')
-        description = helpers.replace_unicode_quotes(description)
-    else:
-        description = title
-
-    if optPrice is not None:
-        price = optPrice
-    else:
-        price = soup.find('span', {'class': 'price'})
-        price = str(price.text)
-        price = price.replace('\n', '').replace(' ', '').replace('$', '').replace('>', '').replace('<', '')
-
-    if optImgUrl is not None:
-        mainImgUrl = helpers.uri_cleaner(optImgUrl)
-    else:
-        mainImg = soup.find('img', {'id': 'image-main'})
-        mainImg = str(mainImg)
-        mainImgRe = r"\ssrc=\"(.*)\"\stitle"
-        mainImgMatch = re.findall(mainImgRe, mainImg)
-        mainImgUrl = helpers.uri_cleaner(mainImgMatch[0])
-
-    # find all images
-    imageSoup = soup.find_all('a', {'class': 'thumb-link'})
-    allImages = []
-
-    for thumb in imageSoup:
-        img = str(thumb)
-        img = img.replace('\n', '')
-        imgRe = r"http.*.jpg"
-        imgM = re.findall(imgRe, img)
-        img = imgM[0]
-        img = helpers.uri_cleaner(img)
-        allImages.append(img)
-
-    allImages = helpers.check_imagelinks(allImages)
-
-    # find video link
-    allVids = []
-    videoSoup = soup.find_all('a', {'id': 'media-vid-0'})
-
-    if len(videoSoup) > 0:
-        for vid in videoSoup:
-            videoLink = vid['href']
-            vidImg = vid.find_all('img')
-            vidImg = helpers.uri_cleaner(vidImg[0]['src'])
-
-    featureData = []
-
-    for ultag in soup.find_all('ul', {'class': 'bullet-list features'}):
-        featureData.append(ultag.text)
-
-    features = list(filter(None, featureData[0].split('\n')))
-    features = [i.strip(' ') for i in features]
-
-    if len(featureData) > 1:
-        notes = list(filter(None, featureData[1].split('\n')))
-        notes = [i.strip(' ') for i in notes]
-        notes = [i.strip('<li>') for i in notes]
-        notes = [i.strip('</li>') for i in notes]
-        if customSelector and customNote != '':
-            notes.append(f'Fits models with {customNote} ONLY!')
-        notes = '; '.join(notes)
-    elif len(featureData) == 1 and customSelector:
-        notes = f'Fits models with {customNote} ONLY!'
-    else:
-        notes = ''
-
-    specData = []
-
-    for prodAttr in soup.find_all('div', {'class': 'product-specs'}):
-        specData.append(prodAttr.text)
-
-    specs = list(filter(None, specData[0].split('\n')))
-    if "decorateTable('product-attribute-specs-table')" in specs:
-        specs.remove("decorateTable('product-attribute-specs-table')")
-
-    spec_keys = specs[0::2]
-    spec_values = specs[1::2]
-
-    spec_values = [s.replace('\"', "-in") for s in spec_values]
-
-    specs = {}
-
-    v = 0
-
-    for i in spec_keys:
-        specs[f'{i}'] = spec_values[v]
-        v += 1
-
-    fitmentData = soup.find('table', {'id': 'fitment-detail'})
-    fitmentDataString = str(fitmentData)
-    fitmentDataString = fitmentDataString.replace("\n", "").replace("\r", "").replace("\n", "")
-
-    regex = r"<tbody>.*<\/tbody>"
-
-    fitMatches = re.findall(regex, fitmentDataString)
-
-    fitments = []
-    for match in fitMatches:
-        m = match.replace("<tbody>", "").replace("<tr>", "").replace("<td>", "").replace("</td>", " ")
-    if m is not None:
-        if m.find('</tr><td colspan="4">'):
-            n = m.split('</tr><td colspan="4">')
-            n = [i.replace(' </tr> </tbody>', '') for i in n]
-            for fitmentRow in n:
-                fitments.append(fitmentRow)
-            fitments = [f.rstrip(' ') for f in fitments]
-        else:
-            fitments.append(m)
-
-    fitments = [fitment.replace('<td colspan="4">', '') for fitment in fitments]
-    fitments = [fitment.replace(' </tr>', '; ') for fitment in fitments]
-
-    boxItemsOnly = []
-    front = []
-    rear = []
-    shock = []
-    body = []
-
-    for boxItem in soup.find_all('ul', {'id': 'box-contents'}):
-        boxItemsOnly.append(boxItem.text)
-
-    if len(boxItemsOnly) >= 1:
-        boxContents = list(filter(None, boxItemsOnly[0].split('\n')))
-        boxContents = [i.strip(' ') for i in boxContents]
-    else:
-        for frontComponent in soup.find_all('ul', {'class': 'bullet-list', 'id': 'front'}):
-            front.append(frontComponent.text)
-        for rearComponent in soup.find_all('ul', {'class': 'bullet-list', 'id': 'rear'}):
-            rear.append(rearComponent.text)
-        for shockComponent in soup.find_all('ul', {'class': 'bullet-list', 'id': 'shocks'}):
-            shock.append(shockComponent.text)
-        for bodyComponent in soup.find_all('ul', {'class': 'bullet-list', 'id': 'body'}):
-            body.append(bodyComponent.text)
+        url = arg
 
     try:
-        boxContents
-    except NameError:
-        boxContents = {}
-        if len(front) != 0:
-            front = list(filter(None, front[0].split('\n')))
-            boxContents['Front'] = front
-        if len(rear) != 0:
-            rear = list(filter(None, rear[0].split('\n')))
-            boxContents['Rear'] = rear
-        if len(shock) != 0:
-            shock = list(filter(None, shock[0].split('\n')))
-            boxContents['Shocks'] = shock
-        if len(body) != 0:
-            body = list(filter(None, body[0].split('\n')))
-            boxContents['Body'] = body
+        with urllib.request.urlopen(url) as response:
 
-    if fitments is not None:
-        content = {
-            'Title': title,
-            'SKU': itemSku,
-            'Description': description,
-            'Price': price,
-            'Features': '; '.join(features).replace('.', ''),
-            'Notes': notes,
-            'Specs': specs,
-            'Fitment': fitments,
-            'In The Box': boxContents,
-            'MainImg': mainImgUrl,
-            'Weight': weight,
-            'UPC': upc
-        }
-    elif boxContents is not None:
-        content = {
-            'Title': title,
-            'SKU': itemSku,
-            'Description': description,
-            'Price': price,
-            'Features': '; '.join(features),
-            'Notes': notes,
-            'Specs': specs,
-            'In The Box': boxContents,
-            'MainImg': mainImgUrl,
-            'Weight': weight,
-            'UPC': upc
-        }
-    else:
-        content = {
-            'Title': title,
-            'SKU': itemSku,
-            'Description': description,
-            'Price': price,
-            'Features': '; '.join(features),
-            'Notes': notes,
-            'Specs': specs,
-            'MainImg': mainImgUrl,
-            'Weight': weight,
-            'UPC': upc
-        }
+            html = response.read()
 
-    if videoLink is not None:
-        content['video_link'] = videoLink
-    else:
-        content['video_link'] = ''
+            soup = bS(html, "html.parser")
 
-    delKV = [k for k, v, in content.items() if v is None]
-    for k in delKV:
-        del content[k]
-
-    picCount = 0
-    for pic in allImages:
-        picCount += 1
-        keyStr = f'Image {picCount}'
-        content[keyStr] = pic
-
-    if writeToFile:
-
-        fieldnames = []
-
-        for k, v in content.items():
-            fieldnames.append(k)
-
-        now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
-        fileLocation = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\csv\\'
-
-        if itemSku != '':
-            filename = fileLocation + itemSku + '.csv'
-        else:
-            filename = fileLocation + 'Item_' + now + '.csv'
-
-        try:
-            open(filename, "r+")
-        except FileNotFoundError:
-            print(cColors.WARNING + "\nMaster csv doesn't exist. Creating...." + cColors.ENDC)
-        except PermissionError:
-            filename = fileLocation + itemSku + '_' + now + '.csv'
-
-        # create csv for generating templates
-        with open(filename, 'w', newline='') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
-            kitLoc = ['Front', 'Rear', 'Body', 'Shocks']
-
-            if any(k in content["In The Box"] for k in kitLoc):
-                allItems = []
-                for loc, val in content["In The Box"].items():
-                    individuals = []
-                    for v in val:
-                        individuals.append(v)
-                    individuals = [i.rstrip(' ') for i in individuals]
-                    allItems.append(str(loc).upper() + ": " + ', '.join(individuals))
-                content["In The Box"] = '; '.join(allItems)
+            custom_selector = False
+            opt_price = None
+            opt_img_url = None
+            custom_note = ''
+            option = None
+            if soup.find('div', {'class': 'input-box'}):
+                custom_selector = True
+                item_sku = input(cColors.WARNING + '\nOPTION SELECTOR FOUND - MANUALLY ENTER SKU: \n' + cColors.ENDC)
+                sel_type = input(cColors.WARNING + '\nIs this an OPTION or a REQUIREMENT?\n' + cColors.ENDC)
+                if sel_type.lower() in ['o', 'option', 'opt', 'opiton', 'opti', 'oo', 'ooo', 'optio', 'options', 'op',
+                                        'otp']:
+                    option = input(cColors.WARNING + '\nEnter the option text:\n' + cColors.ENDC) # not currently used
+                    opt_price = input(cColors.WARNING + '\nEnter the option price:\n' + cColors.ENDC)
+                    opt_img_url = input(cColors.WARNING + '\nPlease paste in the raw image url:\n' + cColors.ENDC)
+                    opt_img_url = helpers.uri_cleaner(opt_img_url)
+                else:
+                    custom_note = input(cColors.WARNING + 'Enter the REQUIREMENT to append to tech notes:\n' + cColors.ENDC)
+            elif soup.find('span', {'id': 'sku-id'}):
+                item_sku = soup.find('span', {'id': 'sku-id'})
+                item_sku = str(item_sku.text)
             else:
-                content["In The Box"] = ', '.join(content["In The Box"])
+                item_sku = soup.find('span', {'itemprop': 'sku'})
+                if item_sku is not None:
+                    item_sku = str(item_sku.text)
+                else:
+                    item_sku = input(cColors.WARNING + '\nPlease input the item SKU: ' + cColors.ENDC)
 
-            specsFlat = []
-            for k, v in content["Specs"].items():
-                thisSpec = k + ': ' + v
-                specsFlat.append(thisSpec)
+            title = soup.find('h1', {'itemprop': 'name'})
+            title = str(title.text)
 
-            content["Specs"] = '; '.join(specsFlat)
-            content["Fitment"] = '; '.join(content["Fitment"])
-
-            writer.writeheader()
-            writer.writerow(content)
-            csvfile.close()
-
-        if type(content['Notes']) == list:
-            for note in content['Notes']:
-                note.replace('<u>', '')
-                note.replace('</u>', '')
-        else:
-            content['Notes'].replace('<u>', '')
-            content['Notes'].replace('</u>', '')
-
-        # create jobber
-        creators.create_jobber(content, allImages)
-
-        # create Amazon-friendly upload CSV file
-        creators.create_amazon(content, allImages)
-
-        call(["node", "C:\\Users\\aflansburg\\Dropbox\\Business\\Rough "
-                      "Country\\WebstormProjects\\template_builder\\maketemplate.js", filename])
-
-        # generating SC new prod row
-        if content['SKU']:
-            eTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
-                         'Country\\generated_files\\templates\\ebay_desc-' +
-                         itemSku + '.html', 'r')
-            ebayTemplate = eTemp.read()
-            eTemp.close()
-
-            aTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
-                         'Country\\generated_files\\templates\\amz_desc-' +
-                         itemSku + '.html', 'r')
-            amazonTemplate = aTemp.read()
-            aTemp.close()
-
-            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
-                         'Country\\generated_files\\walmartFiles\\wal_desc_' +
-                         itemSku + '.html', 'r')
-            walmartDesc = wTemp.read()
-            wTemp.close()
-
-            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
-                         'Country\\generated_files\\walmartFiles\\wal_shelf_' +
-                         itemSku + '.html', 'r')
-            walmartShelf = wTemp.read()
-            wTemp.close()
-
-            wTemp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
-                         'Country\\generated_files\\walmartFiles\\wal_short_' +
-                         itemSku + '.html', 'r')
-            walmartShort = wTemp.read()
-            wTemp.close()
-
-            scFieldnames = ['results', 'product custom sku', 'warehouse id', 'model number', 'product name',
-                            'product weight', 'upc', 'asin', 'manufacturer', 'msrp', 'eBay Description',
-                            'walmart description', 'walmart attr:shelf description', 'walmart attr:short description',
-                            'walmart attr:brand', 'taxable', 'warehouse name', 'qty', 'product weight',
-                            'product attribute:multifitment', 'product attribute:warranty',
-                            'product attribute:superseded', 'product attribute:type', 'product attribute:height',
-                            'image file', 'alternate image file 1', 'alternate image file 2', 'alternate image file 3',
-                            'alternate image file 4', 'alternate image file 5', 'alternate image file 6',
-                            'alternate image file 7', 'alternate image file 8', 'alternate image file 9']
-
-            # may or may not need these later
-            ''', 'walmart attr:Shipping Override-Is Shipping Allowed (#1)',
-                            'walmart attr:Shipping Override-Ship Region (#1)',
-                            'walmart attr:Shipping Override-Ship Method (#1)',
-                            'walmart attr:Shipping Override-Ship Price (#1)',
-                            'walmart attr:Shipping Override-Is Shipping Allowed (#2)',
-                            'walmart attr:Shipping Override-Ship Region (#2)',
-                            'walmart attr:Shipping Override-Ship Method (#2)',
-                            'walmart attr:Shipping Override-Ship Price (#2)'''
-
-            scFileLoc = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\sc-line\\'
-
-            if itemSku != '':
-                scFilename = scFileLoc + itemSku + '_sc-line.csv'
+            description = soup.find('p', {'id': 'product-description'})
+            if description is not None:
+                description = description.text
+                description = description.replace(' Read More', '').rstrip(' ')
+                description = helpers.replace_unicode_quotes(description)
             else:
-                scFilename = scFileLoc + 'Item_' + now + '_sc-line.csv'
+                description = title
+
+            if opt_price is not None:
+                price = opt_price
+            else:
+                price = soup.find('span', {'class': 'price'})
+                price = str(price.text)
+                price = price.replace('\n', '').replace(' ', '').replace('$', '').replace('>', '').replace('<', '')
+
+            if opt_img_url is not None:
+                main_img_url = helpers.uri_cleaner(opt_img_url)
+            else:
+                main_img = soup.find('img', {'id': 'image-main'})
+                main_img = str(main_img)
+                main_img_re = r"\ssrc=\"(.*)\"\stitle"
+                main_img_match = re.findall(main_img_re, main_img)
+                main_img_url = helpers.uri_cleaner(main_img_match[0])
+
+            # find all images
+            image_soup = soup.find_all('a', {'class': 'thumb-link'})
+            all_images = []
+
+            for thumb in image_soup:
+                img = str(thumb)
+                img = img.replace('\n', '')
+                img_re = r"http.*.jpg"
+                img_m = re.findall(img_re, img)
+                if len(img_m) > 0:
+                    img = img_m[0]
+                    img = helpers.uri_cleaner(img)
+                    all_images.append(img)
+            if len(all_images) > 0:
+                all_images = helpers.check_imagelinks(all_images)
+
+            # find video link
+            all_vids = []
+            video_soup = soup.find_all('a', {'id': 'media-vid-0'})
+
+            if len(video_soup) > 0:
+                for vid in video_soup:
+                    video_link = vid['href']
+                    vid_img = vid.find_all('img')
+                    vid_img = helpers.uri_cleaner(vid_img[0]['src'])
+
+            feature_data = []
+
+            for ultag in soup.find_all('ul', {'class': 'bullet-list features'}):
+                feature_data.append(ultag.text)
+
+            if len(feature_data) > 0:
+                features = list(filter(None, feature_data[0].split('\n')))
+                features = [i.strip(' ') for i in features]
+            else:
+                features = []
+
+            if len(feature_data) > 1:
+                notes = list(filter(None, feature_data[1].split('\n')))
+                notes = [i.strip(' ') for i in notes]
+                notes = [i.strip('<li>') for i in notes]
+                notes = [i.strip('</li>') for i in notes]
+                if custom_selector and custom_note != '':
+                    notes.append(f'Fits models with {custom_note} ONLY!')
+                notes = '; '.join(notes)
+            elif len(feature_data) == 1 and custom_selector:
+                notes = f'Fits models with {custom_note} ONLY!'
+            else:
+                notes = ''
+
+            spec_data = []
+
+            for prodAttr in soup.find_all('div', {'class': 'product-specs'}):
+                spec_data.append(prodAttr.text)
+
+            specs = list(filter(None, spec_data[0].split('\n')))
+            if "decorateTable('product-attribute-specs-table')" in specs:
+                specs.remove("decorateTable('product-attribute-specs-table')")
+
+            spec_keys = specs[0::2]
+            spec_values = specs[1::2]
+
+            spec_values = [s.replace('\"', "-in") for s in spec_values]
+
+            specs = {}
+
+            v = 0
+
+            for i in spec_keys:
+                specs[f'{i}'] = spec_values[v]
+                v += 1
+
+            fitment_data = soup.find('table', {'id': 'fitment-detail'})
+            fitment_data_string = str(fitment_data)
+            fitment_data_string = fitment_data_string.replace("\n", "").replace("\r", "").replace("\n", "")
+
+            regex = r"<tbody>.*<\/tbody>"
+
+            fit_matches = re.findall(regex, fitment_data_string)
+
+            fitments = []
+            for match in fit_matches:
+                m = match.replace("<tbody>", "").replace("<tr>", "").replace("<td>", "").replace("</td>", " ")
+            if m is not None:
+                if m.find('</tr><td colspan="4">'):
+                    n = m.split('</tr><td colspan="4">')
+                    n = [i.replace(' </tr> </tbody>', '') for i in n]
+                    for fitmentRow in n:
+                        fitments.append(fitmentRow)
+                    fitments = [f.rstrip(' ') for f in fitments]
+                else:
+                    fitments.append(m)
+
+            fitments = [fitment.replace('<td colspan="4">', '') for fitment in fitments]
+            fitments = [fitment.replace(' </tr>', '; ') for fitment in fitments]
+
+            box_items_only = []
+            front = []
+            rear = []
+            shock = []
+            body = []
+
+            for boxItem in soup.find_all('ul', {'id': 'box-contents'}):
+                box_items_only.append(boxItem.text)
+                print(boxItem.text)
+
+            if len(box_items_only) >= 1:
+                box_contents = list(filter(None, box_items_only[0].split('\n')))
+                box_contents = [i.strip(' ') for i in box_contents]
+            else:
+                for frontComponent in soup.find_all('ul', {'class': 'bullet-list', 'id': 'front'}):
+                    front.append(frontComponent.text)
+                for rearComponent in soup.find_all('ul', {'class': 'bullet-list', 'id': 'rear'}):
+                    rear.append(rearComponent.text)
+                for shockComponent in soup.find_all('ul', {'class': 'bullet-list', 'id': 'shocks'}):
+                    shock.append(shockComponent.text)
+                for bodyComponent in soup.find_all('ul', {'class': 'bullet-list', 'id': 'body'}):
+                    body.append(bodyComponent.text)
 
             try:
-                open(scFilename, "r+")
-            except FileNotFoundError:
-                print(cColors.WARNING + "\nSolid Commerce Import file doesn't exist. Creating...." + cColors.ENDC)
-            except PermissionError:
-                scFilename = scFileLoc + itemSku + '_' + now + '_sc-line.csv'
+                box_contents
+            except NameError:
+                box_contents = {}
+                if len(front) != 0:
+                    front = list(filter(None, front[0].split('\n')))
+                    box_contents['Front'] = front
+                if len(rear) != 0:
+                    rear = list(filter(None, rear[0].split('\n')))
+                    box_contents['Rear'] = rear
+                if len(shock) != 0:
+                    shock = list(filter(None, shock[0].split('\n')))
+                    box_contents['Shocks'] = shock
+                if len(body) != 0:
+                    body = list(filter(None, body[0].split('\n')))
+                    box_contents['Body'] = body
 
-            with open(scFilename, 'w', newline='') as scFile:
-                scFileWriter = csv.DictWriter(scFile, fieldnames=scFieldnames)
+            if fitments is not None:
+                content = {
+                    'Title': title,
+                    'SKU': item_sku,
+                    'Description': description,
+                    'Price': price,
+                    'Features': '; '.join(features).replace('.', ''),
+                    'Notes': notes,
+                    'Specs': specs,
+                    'Fitment': fitments,
+                    'In The Box': box_contents,
+                    'MainImg': main_img_url,
+                    'Weight': weight,
+                    'UPC': upc
+                }
+            elif box_contents is not None:
+                content = {
+                    'Title': title,
+                    'SKU': item_sku,
+                    'Description': description,
+                    'Price': price,
+                    'Features': '; '.join(features),
+                    'Notes': notes,
+                    'Specs': specs,
+                    'In The Box': box_contents,
+                    'MainImg': main_img_url,
+                    'Weight': weight,
+                    'UPC': upc
+                }
+            else:
+                content = {
+                    'Title': title,
+                    'SKU': item_sku,
+                    'Description': description,
+                    'Price': price,
+                    'Features': '; '.join(features),
+                    'Notes': notes,
+                    'Specs': specs,
+                    'MainImg': main_img_url,
+                    'Weight': weight,
+                    'UPC': upc
+                }
 
-                scFileWriter.writeheader()
+            if video_link is not None:
+                content['video_link'] = video_link
+            else:
+                content['video_link'] = ''
 
-                # map to the appropriate keys/field names
-                scRowData = {}
+            del_k_v = [k for k, v, in content.items() if v is None]
+            for k in del_k_v:
+                del content[k]
 
+            pic_count = 0
+            for pic in all_images:
+                pic_count += 1
+                key_str = f'Image {pic_count}'
+                content[key_str] = pic
+
+            if write_to_file:
+
+                fieldnames = []
+
+                for k, v in content.items():
+                    fieldnames.append(k)
+
+                now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+                file_location = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\csv\\'
+
+                if item_sku != '' and append_to_file == False:
+                    filename = file_location + item_sku + '.csv'
+                elif not append_to_file:
+                    filename = file_location + 'multi-file.csv'
+                else:
+                    filename = file_location + 'Item_' + now + '.csv'
+
+                try:
+                    open(filename, "r+")
+                except FileNotFoundError:
+                    print(cColors.WARNING + "\nMaster csv doesn't exist. Creating...." + cColors.ENDC)
+                except PermissionError:
+                    filename = file_location + item_sku + '_' + now + '.csv'
+
+                # create csv for generating templates
+                with open(filename, 'w', newline='') as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+                    kit_loc = ['Front', 'Rear', 'Body', 'Shocks']
+
+                    if any(k in content["In The Box"] for k in kit_loc):
+                        all_items = []
+                        for loc, val in content["In The Box"].items():
+                            individuals = []
+                            for v in val:
+                                individuals.append(v)
+                            individuals = [i.rstrip(' ') for i in individuals]
+                            all_items.append(str(loc).upper() + ": " + ', '.join(individuals))
+                        content["In The Box"] = '; '.join(all_items)
+                    else:
+                        if len(content["In The Box"]) > 1:
+                            content["In The Box"] = ', '.join(content["In The Box"])
+                        elif len(content["In The Box"]) == 1:
+                            content["In The Box"] = content["In The Box"][0]
+
+                    specs_flat = []
+                    for k, v in content["Specs"].items():
+                        this_spec = k + ': ' + v
+                        specs_flat.append(this_spec)
+
+                    content["Specs"] = '; '.join(specs_flat)
+                    content["Fitment"] = '; '.join(content["Fitment"])
+
+                    if not append_to_file:
+                        writer.writeheader()
+                    writer.writerow(content)
+                    csvfile.close()
+
+                if type(content['Notes']) == list:
+                    for note in content['Notes']:
+                        note.replace('<u>', '')
+                        note.replace('</u>', '')
+                else:
+                    content['Notes'].replace('<u>', '')
+                    content['Notes'].replace('</u>', '')
+
+                # create jobber
+                creators.create_jobber(content, all_images)
+
+                if append_to_file:
+                    creators.append_amazon(content)
+                else:
+                    # create Amazon-friendly upload CSV file
+                    creators.create_amazon(content, all_images)
+
+                call(["node", "C:\\Users\\aflansburg\\Dropbox\\Business\\Rough "
+                              "Country\\WebstormProjects\\template_builder\\maketemplate.js", filename])
+
+                # generating SC new prod row
                 if content['SKU']:
-                    scRowData['product custom sku'] = content['SKU']
-                    scRowData['warehouse id'] = content['SKU']
-                    scRowData['model number'] = content['SKU']
-                if content['Title']:
-                    scRowData['product name'] = content['SKU'] + ' - ' + content['Title']
-                if content['Price']:
-                    scRowData['msrp'] = content['Price']
-                if ebayTemplate:
-                    scRowData['eBay Description'] = ebayTemplate
-                scRowData['walmart attr:brand'] = 'Rough Country'
-                if walmartDesc: # need split up
-                    scRowData['walmart description'] = walmartDesc
-                if walmartShelf:
-                    scRowData['walmart attr:shelf description'] = walmartShelf
-                if walmartShort:
-                    scRowData['walmart attr:short description'] = walmartShort
-                if content['MainImg']:
-                    scRowData['image file'] = content['MainImg']
-                if allImages:
-                    scImages = []
-                    for image in allImages:
-                        if allImages.index(image) < 9:
-                            scImages.append(image)
-                    if scRowData:
-                        if content['MainImg'] in scImages:
-                            scImages.remove(content['MainImg'])
-                    for sImg in scImages:
-                        imgKey = scImages.index(sImg) + 1
-                        imgKeyStr = 'alternate image file ' + str(imgKey)
-                        scRowData[imgKeyStr] = sImg
-                scRowData['upc'] = content['UPC']
-                scRowData['product weight'] = weight * 16
-                scRowData['taxable'] = 'Yes'
-                scRowData['warehouse name'] = 'Rough Country'
-                scRowData['manufacturer'] = 'Rough Country'
+                    e_temp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
+                                  'Country\\generated_files\\templates\\ebay_desc-' +
+                                  item_sku + '.html', 'r')
+                    ebay_template = e_temp.read()
+                    e_temp.close()
 
-                scFileWriter.writerow(scRowData)
-            scFile.close()
+                    a_temp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
+                                  'Country\\generated_files\\templates\\amz_desc-' +
+                                  item_sku + '.html', 'r')
+                    # unused because SC does not upload to AMZ currently (for many reasons)
+                    # amazon_template = a_temp.read()
+                    # a_temp.close()
 
-        else:
-            print('Due to a file name conflict, the SC template cannot be automatically generated')
+                    w_temp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
+                                  'Country\\generated_files\\walmartFiles\\wal_desc_' +
+                                  item_sku + '.html', 'r')
+                    walmart_desc = w_temp.read()
+                    w_temp.close()
 
-print(cColors.HEADER + '\nProcesses completed succesfully!')
+                    w_temp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
+                                  'Country\\generated_files\\walmartFiles\\wal_shelf_' +
+                                  item_sku + '.html', 'r')
+                    walmart_shelf = w_temp.read()
+                    w_temp.close()
+
+                    w_temp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
+                                  'Country\\generated_files\\walmartFiles\\wal_short_' +
+                                  item_sku + '.html', 'r')
+                    walmart_short = w_temp.read()
+                    w_temp.close()
+
+                    sc_fieldnames = ['results', 'product custom sku', 'warehouse id', 'model number', 'product name',
+                                     'product weight', 'upc', 'asin', 'manufacturer', 'msrp', 'eBay Description',
+                                     'walmart description', 'walmart attr:shelf description',
+                                     'walmart attr:short description',
+                                     'walmart attr:brand', 'taxable', 'warehouse name', 'qty', 'product weight',
+                                     'product attribute:multifitment', 'product attribute:warranty',
+                                     'product attribute:superseded', 'product attribute:type', 'product attribute:height',
+                                     'image file', 'alternate image file 1', 'alternate image file 2',
+                                     'alternate image file 3',
+                                     'alternate image file 4', 'alternate image file 5', 'alternate image file 6',
+                                     'alternate image file 7', 'alternate image file 8', 'alternate image file 9']
+
+                    # may or may not need these later
+                    ''', 'walmart attr:Shipping Override-Is Shipping Allowed (#1)',
+                                    'walmart attr:Shipping Override-Ship Region (#1)',
+                                    'walmart attr:Shipping Override-Ship Method (#1)',
+                                    'walmart attr:Shipping Override-Ship Price (#1)',
+                                    'walmart attr:Shipping Override-Is Shipping Allowed (#2)',
+                                    'walmart attr:Shipping Override-Ship Region (#2)',
+                                    'walmart attr:Shipping Override-Ship Method (#2)',
+                                    'walmart attr:Shipping Override-Ship Price (#2)'''
+
+                    sc_file_loc = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\sc-line\\'
+
+                    if item_sku != '':
+                        sc_filename = sc_file_loc + item_sku + '_sc-line.csv'
+                    else:
+                        sc_filename = sc_file_loc + 'Item_' + now + '_sc-line.csv'
+
+                    try:
+                        open(sc_filename, "r+")
+                    except FileNotFoundError:
+                        print(cColors.WARNING + "\nSolid Commerce Import file doesn't exist. Creating...." + cColors.ENDC)
+                    except PermissionError:
+                        sc_filename = sc_file_loc + item_sku + '_' + now + '_sc-line.csv'
+
+                    with open(sc_filename, 'w', newline='') as scFile:
+                        sc_file_writer = csv.DictWriter(scFile, fieldnames=sc_fieldnames)
+
+                        sc_file_writer.writeheader()
+
+                        # map to the appropriate keys/field names
+                        sc_row_data = {}
+
+                        if content['SKU']:
+                            sc_row_data['product custom sku'] = content['SKU']
+                            sc_row_data['warehouse id'] = content['SKU']
+                            sc_row_data['model number'] = content['SKU']
+                        if content['Title']:
+                            sc_row_data['product name'] = content['SKU'] + ' - ' + content['Title']
+                        if content['Price']:
+                            sc_row_data['msrp'] = content['Price']
+                        if ebay_template:
+                            sc_row_data['eBay Description'] = ebay_template
+                        sc_row_data['walmart attr:brand'] = 'Rough Country'
+                        if walmart_desc:  # need split up
+                            sc_row_data['walmart description'] = walmart_desc
+                        if walmart_shelf:
+                            sc_row_data['walmart attr:shelf description'] = walmart_shelf
+                        if walmart_short:
+                            sc_row_data['walmart attr:short description'] = walmart_short
+                        if content['MainImg']:
+                            sc_row_data['image file'] = content['MainImg']
+                        if all_images:
+                            sc_images = []
+                            for image in all_images:
+                                if all_images.index(image) < 9:
+                                    sc_images.append(image)
+                            if sc_row_data:
+                                if content['MainImg'] in sc_images:
+                                    sc_images.remove(content['MainImg'])
+                            for sImg in sc_images:
+                                img_key = sc_images.index(sImg) + 1
+                                img_key_str = 'alternate image file ' + str(img_key)
+                                sc_row_data[img_key_str] = sImg
+                        sc_row_data['upc'] = content['UPC']
+                        sc_row_data['product weight'] = weight * 16
+                        sc_row_data['taxable'] = 'Yes'
+                        sc_row_data['warehouse name'] = 'Rough Country'
+                        sc_row_data['manufacturer'] = 'Rough Country'
+
+                        sc_file_writer.writerow(sc_row_data)
+                    scFile.close()
+
+                else:
+                    print('Due to a file name conflict, the SC template cannot be automatically generated')
+
+        print(cColors.HEADER + '\nProcesses completed succesfully!')
+    except urllib.error.HTTPError:
+        print('Skipping this one - there was an HTTP error: ' + url)
+

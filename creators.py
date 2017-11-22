@@ -24,7 +24,7 @@ def create_jobber(product, images):
 
     jobber_fields = ['MPN', 'Item Type', 'MAP', 'Discount %', 'Your Cost', 'Title',
                      'Strut/Shock Series', 'Start Year', 'End Year', 'Make',
-                     'Model', 'Drive', 'Combined Fitment', 'Description', 'Kit products',
+                     'Model', 'Drive', 'Combined Fitment', 'Description', 'Kit Contents',
                      'Benefits', 'Technical Notes', 'Item Specifics', 'Weight (Lbs)',
                      'US Shipping', 'CAN Shipping', 'Image 1', 'Image 2', 'Image 3', 'Image 4',
                      'Image 5', 'Image 6', 'Image 7', 'Image 8', 'Image 9', 'Video Link', 'Superseded', 'Warranty',
@@ -32,7 +32,7 @@ def create_jobber(product, images):
 
     jobber_dict = {'MPN': product['SKU'], 'Title': product['Title'], 'Description': product['Description'],
                    'Benefits': product['Features'], 'Combined Fitment': product['Fitment'],
-                   'Kit products': product['In The Box'], 'Technical Notes': product['Notes'], 'US Shipping': 0,
+                   'Kit Contents': product['In The Box'], 'Technical Notes': product['Notes'], 'US Shipping': 0,
                    'MAP': product['Price'], 'Item Specifics': product['Specs'], 'Video Link': product['video_link'],
                    'Image 1': product['MainImg'], 'Warranty': 'Limited Lifetime', 'UPC Code': product['UPC']}
 
@@ -42,6 +42,13 @@ def create_jobber(product, images):
 
     if product['MainImg'] in images:
         images.pop(images.index(product['MainImg']))
+
+    # for i in images:
+    #     if images.index(i) > 9:
+    #         images.pop(i)
+    for i in range(10, 100):
+        if f'Image {i}' in jobber_dict.keys():
+            jobber_dict.pop(f'Image {i}', 0)
 
     if len(images) > 0:
         for image in images:
@@ -85,7 +92,7 @@ def create_amazon(product, images):
     except FileNotFoundError:
         print(cColors.WARNING + "\nAmazon file doesn't exist. Creating....\n" + cColors.ENDC)
     except PermissionError:
-        amz_file_filename = amz_file_file_location + itemSku + '_' + now + '_amzFile.csv'
+        amz_file_filename = amz_file_file_location + product['SKU'] + '_' + now + '_amzFile.csv'
 
     amz_file_fields = ['item_sku', 'item_name', 'part_number', 'standard_price', 'main_image_url', 'other_image_url1',
                        'other_image_url2', 'other_image_url3', 'product_description', 'bullet_point1',
@@ -101,7 +108,7 @@ def create_amazon(product, images):
                                       'item_name': product['Title'],
                                       'bullet_point1': 'Features: ' + product['Features'],
                                       'bullet_point2': 'Fits: ' + product['Fitment'],
-                                      'bullet_point4': 'Kit products: ' + product['In The Box'],
+                                      'bullet_point4': 'Kit Contents: ' + product['In The Box'],
                                       'part_number': product['SKU'], 'bullet_point3': 'Notes: ' + product['Notes'],
                                       'standard_price': product['Price'], 'bullet_point5': 'Specs: ' +
                                                                                            product['Specs'],
@@ -112,7 +119,7 @@ def create_amazon(product, images):
                                       'item_name': product['Title'], 'bullet_point1': 'Features: ' +
                                                                                       product['Features'],
                                       'bullet_point2': 'Fits: ' + product['Fitment'],
-                                      'bullet_point4': 'Kit products: ' + product['In The Box'],
+                                      'bullet_point4': 'Kit Contents: ' + product['In The Box'],
                                       'part_number': product['SKU'], 'bullet_point3': 'Notes: ' + product['Notes'],
                                       'standard_price': product['Price'], 'bullet_point5': 'Specs: ' +
                                                                                            product['Specs'],
@@ -122,7 +129,7 @@ def create_amazon(product, images):
                                       'item_name': product['Title'], 'bullet_point1': 'Features: ' +
                                                                                       product['Features'],
                                       'bullet_point2': 'Fits: ' + product['Fitment'],
-                                      'bullet_point4': 'Kit products: ' + product['In The Box'],
+                                      'bullet_point4': 'Kit Contents: ' + product['In The Box'],
                                       'part_number': product['SKU'], 'bullet_point3': 'Notes: ' + product['Notes'],
                                       'standard_price': product['Price'], 'bullet_point5': 'Specs: ' +
                                                                                            product['Specs'],
@@ -133,7 +140,7 @@ def create_amazon(product, images):
                                       'item_name': product['Title'], 'bullet_point1': 'Features: ' +
                                                                                       product['Features'],
                                       'bullet_point2': 'Fits: ' + product['Fitment'],
-                                      'bullet_point4': 'Kit products: ' + product['In The Box'],
+                                      'bullet_point4': 'Kit Contents: ' + product['In The Box'],
                                       'part_number': product['SKU'], 'bullet_point3': 'Notes: ' + product['Notes'],
                                       'standard_price': product['Price'], 'bullet_point5': 'Specs: ' +
                                                                                            product['Specs'],
@@ -144,7 +151,7 @@ def create_amazon(product, images):
                                       'item_name': product['Title'], 'bullet_point1': 'Features: ' +
                                                                                       product['Features'],
                                       'bullet_point2': 'Fits: ' + product['Fitment'],
-                                      'bullet_point4': 'Kit products: ' + product['In The Box'],
+                                      'bullet_point4': 'Kit Contents: ' + product['In The Box'],
                                       'part_number': product['SKU'], 'bullet_point3': 'Notes: ' + product['Notes'],
                                       'standard_price': product['Price'], 'bullet_point5': 'Specs: ' +
                                                                                            product['Specs'],
@@ -153,6 +160,35 @@ def create_amazon(product, images):
                                       'other_image_url3': images[3]})
 
         amzFileCsvFile.close()
+
+
+def append_amazon(product):
+    multi_file_name = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough ' \
+                      'Country\\generated_files\\amzFiles\\multi-file.csv '
+    try:
+        open(multi_file_name, "r+")
+    except FileNotFoundError:
+        print(
+            cColors.WARNING + "\nMulti-file file doesn't exist. Please create with the approriate header row....\n" + cColors.ENDC)
+    except PermissionError:
+        print(cColors.WARNING + "\nMulti-file exists, but is open - please close before continuing!\n" + cColors.ENDC)
+
+    amz_file_fields = ['item_sku', 'item_name', 'part_number', 'standard_price', 'main_image_url', 'other_image_url1',
+                       'other_image_url2', 'other_image_url3', 'product_description', 'bullet_point1',
+                       'bullet_point2', 'bullet_point3', 'bullet_point4', 'bullet_point5']
+
+    with open(multi_file_name, 'a', newline='') as amz_multi_file:
+        amz_file_writer = csv.DictWriter(amz_multi_file, fieldnames=amz_file_fields)
+
+        amz_file_writer.writerow({'item_sku': product['SKU'], 'product_description': product['Description'],
+                                  'item_name': product['Title'],
+                                  'bullet_point1': 'Features: ' + product['Features'],
+                                  'bullet_point2': 'Fits: ' + product['Fitment'],
+                                  'bullet_point4': 'Kit Contents: ' + product['In The Box'],
+                                  'part_number': product['SKU'], 'bullet_point3': 'Notes: ' + product['Notes'],
+                                  'standard_price': product['Price'], 'bullet_point5': 'Specs: ' +
+                                                                                       product['Specs']})
+        amz_multi_file.close()
 
 
 def get_multifits(fitment):
