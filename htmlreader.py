@@ -83,7 +83,7 @@ def read_page(arg, opts):
                 price = price.replace('\n', '').replace(' ', '').replace('$', '').replace('>', '').replace('<', '')
 
             if opt_img_url is not None:
-                main_img_url = helpers.uri_cleaner(opt_img_url)
+                main_img_url = opt_img_url
             else:
                 main_img = soup.find('img', {'id': 'image-main'})
                 main_img = str(main_img)
@@ -107,7 +107,7 @@ def read_page(arg, opts):
             if len(all_images) > 0:
                 all_images = helpers.check_imagelinks(all_images)
 
-            # find video link
+            # find video link -- this doesn't appear to be fully implemented yet....
             all_vids = []
             video_soup = soup.find_all('a', {'id': 'media-vid-0'})
 
@@ -172,6 +172,7 @@ def read_page(arg, opts):
             fit_matches = re.findall(regex, fitment_data_string)
 
             fitments = []
+            m = None
             for match in fit_matches:
                 m = match.replace("<tbody>", "").replace("<tr>", "").replace("<td>", "").replace("</td>", " ")
             if m is not None:
@@ -195,7 +196,6 @@ def read_page(arg, opts):
 
             for boxItem in soup.find_all('ul', {'id': 'box-contents'}):
                 box_items_only.append(boxItem.text)
-                print(boxItem.text)
 
             if len(box_items_only) >= 1:
                 box_contents = list(filter(None, box_items_only[0].split('\n')))
@@ -361,6 +361,8 @@ def read_page(arg, opts):
                     # create Amazon-friendly upload CSV file
                     creators.create_amazon(content, all_images)
 
+                print(content)
+
                 call(["node", "C:\\Users\\aflansburg\\Dropbox\\Business\\Rough "
                               "Country\\WebstormProjects\\template_builder\\maketemplate.js", filename])
 
@@ -398,12 +400,14 @@ def read_page(arg, opts):
                     w_temp.close()
 
                     sc_fieldnames = ['results', 'product custom sku', 'warehouse id', 'model number', 'product name',
-                                     'product weight', 'upc', 'asin', 'manufacturer', 'msrp', 'eBay Description',
+                                     'product attribute:base_pn', 'upc', 'asin', 'manufacturer', 'msrp', 'eBay '
+                                                                                                         'Description',
                                      'walmart description', 'walmart attr:shelf description',
                                      'walmart attr:short description',
                                      'walmart attr:brand', 'taxable', 'warehouse name', 'qty', 'product weight',
                                      'product attribute:multifitment', 'product attribute:warranty',
-                                     'product attribute:superseded', 'product attribute:type', 'product attribute:height',
+                                     'product attribute:superseded', 'product attribute:type', 'product '
+                                                                                               'attribute:height',
                                      'image file', 'alternate image file 1', 'alternate image file 2',
                                      'alternate image file 3',
                                      'alternate image file 4', 'alternate image file 5', 'alternate image file 6',
@@ -473,7 +477,8 @@ def read_page(arg, opts):
                                 img_key_str = 'alternate image file ' + str(img_key)
                                 sc_row_data[img_key_str] = sImg
                         sc_row_data['upc'] = content['UPC']
-                        sc_row_data['product weight'] = weight * 16
+                        if weight != '':
+                            sc_row_data['product weight'] = int(round(float(weight))) * 16
                         sc_row_data['taxable'] = 'Yes'
                         sc_row_data['warehouse name'] = 'Rough Country'
                         sc_row_data['manufacturer'] = 'Rough Country'
