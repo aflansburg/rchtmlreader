@@ -43,24 +43,21 @@ def create_jobber(product, images):
     if product['MainImg'] in images:
         images.pop(images.index(product['MainImg']))
 
-    # for i in images:
-    #     if images.index(i) > 9:
-    #         images.pop(i)
-    for i in range(10, 100):
-        if f'Image {i}' in jobber_dict.keys():
-            jobber_dict.pop(f'Image {i}', 0)
-
     if len(images) > 0:
         for image in images:
             index = images.index(image) + 2
             key_string = 'Image ' + str(index)
             jobber_dict[key_string] = image
 
+    for i in range(10, 100):
+        if f'Image {i}' in jobber_dict.keys():
+            jobber_dict.pop(f'Image {i}', 0)
+
     with open(jobber_filename, 'w', newline='') as jobberCsvFile:
         jobber_writer = csv.DictWriter(jobberCsvFile, fieldnames=jobber_fields)
 
         fitments = product['Fitment'].split("; ")
-        regex_starts = r"^\d{4}-\d{4}"
+        regex_starts = r"^\d{4}"
         for item in (item for item in fitments if not re.match(regex_starts, item)):
             fitments.pop(fitments.index(item))
 
@@ -73,6 +70,9 @@ def create_jobber(product, images):
                 if multi_fit is not None:
                     multi_dict.update(multi_fit)
                     jobber_writer.writerow(multi_dict)
+        elif len(fitments) == 1:
+            jobber_dict.update(get_multifits(fitments[0]))
+            jobber_writer.writerow(jobber_dict)
         else:
             jobber_writer.writerow(jobber_dict)
 
@@ -204,10 +204,16 @@ def get_multifits(fitment):
     # model
     regex_model = r"WD\s\S+\s(.*)"
 
+    start_year = None
+
     years = re.finditer(regex_years, fitment)
     for year in years:
         start_year = year.group(1)
         end_year = year.group(2)
+    if start_year is None:
+        regex_year = r"\d{4}"
+        year = re.findall(regex_year, fitment)
+        years = None
 
     drive_matches = re.findall(regex_drive, fitment)
 
@@ -226,6 +232,10 @@ def get_multifits(fitment):
         for m in model:
             v_model = m.group(1)
 
-        fitment_details = {'Start Year': start_year, 'End Year': end_year, 'Make': v_make, 'Model': v_model,
-                           'Drive': drive_type}
+        if years is not None:
+            fitment_details = {'Start Year': start_year, 'End Year': end_year, 'Make': v_make, 'Model': v_model,
+                               'Drive': drive_type}
+        else:
+            fitment_details = {'Start Year': year[0], 'Make': v_make, 'Model': v_model,
+                               'Drive': drive_type}
         return fitment_details

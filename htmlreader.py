@@ -1,3 +1,4 @@
+import pprint
 import csv
 import datetime
 import re
@@ -9,6 +10,8 @@ import creators
 from bs4 import BeautifulSoup as bS
 from cli_augments import ConsoleColors as cColors
 
+pp = pprint.PrettyPrinter(indent=4)
+
 
 def read_page(arg, opts):
     write_to_file = True
@@ -18,10 +21,10 @@ def read_page(arg, opts):
     video_link = ''
 
     # need to fix this implementation
-    if opts is not None:
-        if type(opts) == bool:
-            if opts:
-                append_to_file = True
+    # if opts is not None:
+    #     if type(opts) == bool:
+    #         if opts:
+    #             append_to_file = True
     if type(arg) == dict:
         url = arg['URL']
         upc = arg['UPC']
@@ -42,9 +45,10 @@ def read_page(arg, opts):
             opt_img_url = None
             custom_note = ''
             option = None
+            print(f'\nCurrent url: {url}')
             if soup.find('div', {'class': 'input-box'}):
                 custom_selector = True
-                item_sku = input(cColors.WARNING + '\nOPTION SELECTOR FOUND - MANUALLY ENTER SKU: \n' + cColors.ENDC)
+                item_sku = input(cColors.WARNING + '\nDROP DOWN SELECTOR FOUND - MANUALLY ENTER SKU: \n' + cColors.ENDC)
                 sel_type = input(cColors.WARNING + '\nIs this an OPTION or a REQUIREMENT?\n' + cColors.ENDC)
                 if sel_type.lower() in ['o', 'option', 'opt', 'opiton', 'opti', 'oo', 'ooo', 'optio', 'options', 'op',
                                         'otp']:
@@ -54,15 +58,20 @@ def read_page(arg, opts):
                     opt_img_url = helpers.uri_cleaner(opt_img_url)
                 else:
                     custom_note = input(cColors.WARNING + 'Enter the REQUIREMENT to append to tech notes:\n' + cColors.ENDC)
+                    opt_price = input(cColors.WARNING + '\nEnter the option price:\n' + cColors.ENDC)
+                    opt_img_url = input(cColors.WARNING + '\nPlease paste in the raw image url:\n' + cColors.ENDC)
+                    opt_img_url = helpers.uri_cleaner(opt_img_url)
             elif soup.find('span', {'id': 'sku-id'}):
                 item_sku = soup.find('span', {'id': 'sku-id'})
                 item_sku = str(item_sku.text)
-            else:
+            elif soup.find('span', {'itemprop': 'sku'}):
                 item_sku = soup.find('span', {'itemprop': 'sku'})
                 if item_sku is not None:
                     item_sku = str(item_sku.text)
                 else:
                     item_sku = input(cColors.WARNING + '\nPlease input the item SKU: ' + cColors.ENDC)
+            else:
+                item_sku = input(cColors.WARNING + '\nCOULD NOT LOCATE SKU - MANUALLY ENTER SKU: \n' + cColors.ENDC)
 
             title = soup.find('h1', {'itemprop': 'name'})
             title = str(title.text)
@@ -84,17 +93,19 @@ def read_page(arg, opts):
 
             if opt_img_url is not None:
                 main_img_url = opt_img_url
+                all_images = [main_img_url]
+                print(cColors.WARNING + '\nDue to options requirements - only main image will be processed - make sure'
+                                        'to add any desired additional photos manually.')
             else:
                 main_img = soup.find('img', {'id': 'image-main'})
                 main_img = str(main_img)
                 main_img_re = r"\ssrc=\"(.*)\"\stitle"
                 main_img_match = re.findall(main_img_re, main_img)
                 main_img_url = helpers.uri_cleaner(main_img_match[0])
+                all_images = [main_img_url]
 
             # find all images
             image_soup = soup.find_all('a', {'class': 'thumb-link'})
-            all_images = []
-
             for thumb in image_soup:
                 img = str(thumb)
                 img = img.replace('\n', '')
@@ -103,7 +114,8 @@ def read_page(arg, opts):
                 if len(img_m) > 0:
                     img = img_m[0]
                     img = helpers.uri_cleaner(img)
-                    all_images.append(img)
+                    if img != main_img_url:
+                        all_images.append(img)
             if len(all_images) > 0:
                 all_images = helpers.check_imagelinks(all_images)
 
@@ -339,8 +351,9 @@ def read_page(arg, opts):
                     content["Specs"] = '; '.join(specs_flat)
                     content["Fitment"] = '; '.join(content["Fitment"])
 
-                    if not append_to_file:
-                        writer.writeheader()
+                    # if not append_to_file:
+                    #     writer.writeheader()
+                    writer.writeheader()
                     writer.writerow(content)
                     csvfile.close()
 
@@ -361,7 +374,8 @@ def read_page(arg, opts):
                     # create Amazon-friendly upload CSV file
                     creators.create_amazon(content, all_images)
 
-                print(content)
+                pp.pprint(content)
+                print('\n')
 
                 call(["node", "C:\\Users\\aflansburg\\Dropbox\\Business\\Rough "
                               "Country\\WebstormProjects\\template_builder\\maketemplate.js", filename])

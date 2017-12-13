@@ -94,7 +94,7 @@ def arg_parser(args):
             return url
     elif multi_urls:
         url_list = []
-        with open(multi_url_path, 'r+', newline='') as csvfile:
+        with open(multi_url_path, 'r', newline='') as csvfile:
             reader = csv.reader(csvfile)
             for row in reader:
                 url_list.append(row[0])
