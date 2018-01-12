@@ -1,14 +1,43 @@
 import csv
 import datetime
 import re
+import os
 from helpers import ship_rate as canship
 from cli_augments import ConsoleColors as cColors
 
 now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
+base_dir = ''
+ws_dir = ''
+sc_dir = ''
+j_dir = ''
+amz_dir = ''
+gen_dir = ''
+csv_dir = ''
+dir_slash = ''
+
+if os.name == "posix":
+    base_dir = '/Users/abram/Dropbox/Business/Rough Country/'
+    ws_dir = 'WebstormProjects/template_builder/'
+    sc_dir = 'generated_files/sc-line/'
+    j_dir = 'generated_files/jobber_lines/'
+    amz_dir = 'generated_files/amzFiles/'
+    csv_dir = 'generated_files/csv/'
+    gen_dir = 'generated_files/'
+    dir_slash = '/'
+elif os.name == "nt":
+    base_dir = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\'
+    ws_dir = 'WebstormProjects\\template_builder\\'
+    sc_dir = 'generated_files\\sc-line\\'
+    j_dir = 'generated_files\\jobber_lines\\'
+    amz_dir = 'generated_files\\amzFiles\\'
+    csv_dir = 'generated_files\\csv\\'
+    gen_dir = 'generated_files\\'
+    dir_slash = '\\'
+
 
 def create_jobber(product, images):
-    jobber_file_location = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\jobber_lines\\'
+    jobber_file_location = base_dir + j_dir
 
     if product['SKU'] != '':
         jobber_filename = jobber_file_location + product['SKU'] + '_jobber.csv'
@@ -81,7 +110,7 @@ def create_jobber(product, images):
 
 
 def create_amazon(product, images):
-    amz_file_file_location = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\amzFiles\\'
+    amz_file_file_location = base_dir + amz_dir
     if product['SKU'] != '':
         amz_file_filename = amz_file_file_location + product['SKU'] + '_amzFile.csv'
     else:
@@ -163,8 +192,7 @@ def create_amazon(product, images):
 
 
 def append_amazon(product):
-    multi_file_name = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough ' \
-                      'Country\\generated_files\\amzFiles\\multi-file.csv '
+    multi_file_name = base_dir + amz_dir + 'multi-file.csv'
     try:
         open(multi_file_name, "r+")
     except FileNotFoundError:

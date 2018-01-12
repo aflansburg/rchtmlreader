@@ -2,6 +2,34 @@ import validators
 import csv
 import os
 
+base_dir = ''
+ws_dir = ''
+sc_dir = ''
+j_dir = ''
+amz_dir = ''
+gen_dir = ''
+csv_dir = ''
+dir_slash = ''
+
+if os.name == "posix":
+    base_dir = '/Users/abram/Dropbox/Business/Rough Country/'
+    ws_dir = 'WebstormProjects/template_builder/'
+    sc_dir = 'generated_files/sc-line/'
+    j_dir = 'generated_files/jobber_lines/'
+    amz_dir = 'generated_files/amzFiles/'
+    csv_dir = 'generated_files/csv/'
+    gen_dir = 'generated_files/'
+    dir_slash = '/'
+elif os.name == "nt":
+    base_dir = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\'
+    ws_dir = 'WebstormProjects\\template_builder\\'
+    sc_dir = 'generated_files\\sc-line\\'
+    j_dir = 'generated_files\\jobber_lines\\'
+    amz_dir = 'generated_files\\amzFiles\\'
+    csv_dir = 'generated_files\\csv\\'
+    gen_dir = 'generated_files\\'
+    dir_slash = '\\'
+
 
 class ConsoleColors:
     HEADER = '\033[95m'
@@ -15,18 +43,19 @@ class ConsoleColors:
 
 
 def clean_directories():
-    gen_path = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files'
+    gen_path = base_dir + gen_dir
     sub_dirs = [d for d in os.listdir(gen_path)]
     file_rm_count = 0
-
     try:
         for subdir in sub_dirs:
             file_rm_count += 1
-            files = [name for name in os.listdir(gen_path + '\\' + subdir)]
-            for f in files:
-                if f != 'multi-file.csv':
-                    os.remove(gen_path + '\\' + subdir + '\\' + f)
-        print(f'\n{file_rm_count} files were purged.')
+            full = gen_path + subdir
+            if os.path.isdir(full):
+                files = [name for name in os.listdir(gen_path + subdir)]
+                for f in files:
+                    if f != 'multi-file.csv' and f !='.DS_Store':
+                        os.remove(gen_path + subdir + dir_slash + f)
+                        print(f'\n{file_rm_count} files were purged.')
     except PermissionError:
         print(ConsoleColors.FAIL + '\nFiles could not be purged due to file being open. Files will not be purged.\n' +
               ConsoleColors.ENDC)

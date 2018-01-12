@@ -1,4 +1,5 @@
 import pprint
+import os
 import csv
 import datetime
 import re
@@ -9,6 +10,39 @@ import helpers
 import creators
 from bs4 import BeautifulSoup as bS
 from cli_augments import ConsoleColors as cColors
+
+base_dir = ''
+ws_dir = ''
+sc_dir = ''
+j_dir = ''
+amz_dir = ''
+gen_dir = ''
+csv_dir = ''
+dir_slash = ''
+
+if os.name == "posix":
+    base_dir = '/Users/abram/Dropbox/Business/Rough Country/'
+    ws_dir = 'WebstormProjects/template_builder/'
+    sc_dir = 'generated_files/sc-line/'
+    j_dir = 'generated_files/jobber_lines/'
+    amz_dir = 'generated_files/amzFiles/'
+    temp_dir = 'generated_files/templates/'
+    wm_dir = 'generated_files/walmartFiles/'
+    csv_dir = 'generated_files/csv/'
+    gen_dir = 'generated_files/'
+    dir_slash = '/'
+
+elif os.name == "nt":
+    base_dir = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\'
+    ws_dir = 'WebstormProjects\\template_builder\\'
+    sc_dir = 'generated_files\\sc-line\\'
+    j_dir = 'generated_files\\jobber_lines\\'
+    amz_dir = 'generated_files\\amzFiles\\'
+    temp_dir = 'generated_files\\templates\\'
+    wm_dir = 'generated_files\\walmartFiles\\'
+    csv_dir = 'generated_files\\csv\\'
+    gen_dir = 'generated_files\\'
+    dir_slash = '\\'
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -306,7 +340,7 @@ def read_page(arg, opts):
 
                 now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
-                file_location = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\csv\\'
+                file_location = base_dir + csv_dir
 
                 if item_sku != '' and append_to_file == False:
                     filename = file_location + item_sku + '.csv'
@@ -377,38 +411,32 @@ def read_page(arg, opts):
                 pp.pprint(content)
                 print('\n')
 
-                call(["node", "C:\\Users\\aflansburg\\Dropbox\\Business\\Rough "
-                              "Country\\WebstormProjects\\template_builder\\maketemplate.js", filename])
+                call(["node", base_dir + ws_dir + "maketemplate.js", filename])
 
                 # generating SC new prod row
                 if content['SKU']:
-                    e_temp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
-                                  'Country\\generated_files\\templates\\ebay_desc-' +
+                    e_temp = open(base_dir + temp_dir + 'ebay_desc-' +
                                   item_sku + '.html', 'r')
                     ebay_template = e_temp.read()
                     e_temp.close()
 
-                    a_temp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
-                                  'Country\\generated_files\\templates\\amz_desc-' +
+                    a_temp = open(base_dir + temp_dir + 'amz_desc-' +
                                   item_sku + '.html', 'r')
                     # unused because SC does not upload to AMZ currently (for many reasons)
                     # amazon_template = a_temp.read()
                     # a_temp.close()
 
-                    w_temp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
-                                  'Country\\generated_files\\walmartFiles\\wal_desc_' +
+                    w_temp = open(base_dir + wm_dir + 'wal_desc_' +
                                   item_sku + '.html', 'r')
                     walmart_desc = w_temp.read()
                     w_temp.close()
 
-                    w_temp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
-                                  'Country\\generated_files\\walmartFiles\\wal_shelf_' +
+                    w_temp = open(base_dir + wm_dir + 'wal_shelf_' +
                                   item_sku + '.html', 'r')
                     walmart_shelf = w_temp.read()
                     w_temp.close()
 
-                    w_temp = open('C:\\Users\\aflansburg\\Dropbox\\Business\\Rough '
-                                  'Country\\generated_files\\walmartFiles\\wal_short_' +
+                    w_temp = open(base_dir + wm_dir + 'wal_short_' +
                                   item_sku + '.html', 'r')
                     walmart_short = w_temp.read()
                     w_temp.close()
@@ -425,19 +453,18 @@ def read_page(arg, opts):
                                      'image file', 'alternate image file 1', 'alternate image file 2',
                                      'alternate image file 3',
                                      'alternate image file 4', 'alternate image file 5', 'alternate image file 6',
-                                     'alternate image file 7', 'alternate image file 8', 'alternate image file 9']
+                                     'alternate image file 7', 'alternate image file 8', 'alternate image file 9',
+                                     'walmart attr:Shipping Override-Is Shipping Allowed (#1)',
+                                     'walmart attr:Shipping Override-Ship Region (#1)',
+                                     'walmart attr:Shipping Override-Ship Method (#1)',
+                                     'walmart attr:Shipping Override-Ship Price (#1)',
+                                     'walmart attr:Shipping Override-Is Shipping Allowed (#2)',
+                                     'walmart attr:Shipping Override-Ship Region (#2)',
+                                     'walmart attr:Shipping Override-Ship Method (#2)',
+                                     'walmart attr:Shipping Override-Ship Price (#2)',
+                                     'product attribute:apply_update']
 
-                    # may or may not need these later
-                    ''', 'walmart attr:Shipping Override-Is Shipping Allowed (#1)',
-                                    'walmart attr:Shipping Override-Ship Region (#1)',
-                                    'walmart attr:Shipping Override-Ship Method (#1)',
-                                    'walmart attr:Shipping Override-Ship Price (#1)',
-                                    'walmart attr:Shipping Override-Is Shipping Allowed (#2)',
-                                    'walmart attr:Shipping Override-Ship Region (#2)',
-                                    'walmart attr:Shipping Override-Ship Method (#2)',
-                                    'walmart attr:Shipping Override-Ship Price (#2)'''
-
-                    sc_file_loc = 'C:\\Users\\aflansburg\\Dropbox\\Business\\Rough Country\\generated_files\\sc-line\\'
+                    sc_file_loc = base_dir + sc_dir
 
                     if item_sku != '':
                         sc_filename = sc_file_loc + item_sku + '_sc-line.csv'
@@ -470,6 +497,16 @@ def read_page(arg, opts):
                         if ebay_template:
                             sc_row_data['eBay Description'] = ebay_template
                         sc_row_data['walmart attr:brand'] = 'Rough Country'
+                        sc_row_data['walmart attr:Shipping Override-Is Shipping Allowed (#1)'] = 'N'
+                        sc_row_data['walmart attr:Shipping Override-Ship Region (#1)'] = 'STREET_48_STATES'
+                        sc_row_data['walmart attr:Shipping Override-Ship Method (#1)'] = 'VALUE'
+                        sc_row_data['walmart attr:Shipping Override-Ship Price (#1)'] = 0
+                        sc_row_data['walmart attr:brand'] = 'Rough Country'
+                        sc_row_data['walmart attr:Shipping Override-Is Shipping Allowed (#2)'] = 'Y'
+                        sc_row_data['walmart attr:Shipping Override-Ship Region (#2)'] = 'STREET_48_STATES'
+                        sc_row_data['walmart attr:Shipping Override-Ship Method (#2)'] = 'STANDARD'
+                        sc_row_data['walmart attr:Shipping Override-Ship Price (#2)'] = 0
+                        sc_row_data['product attribute:apply_update'] = 'Y'
                         if walmart_desc:  # need split up
                             sc_row_data['walmart description'] = walmart_desc
                         if walmart_shelf:
