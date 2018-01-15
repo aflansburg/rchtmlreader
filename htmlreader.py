@@ -541,6 +541,7 @@ def read_page(arg, opts):
                     print('Due to a file name conflict, the SC template cannot be automatically generated')
 
         print(cColors.HEADER + '\nProcesses completed succesfully!')
+        print(cColors.NORMAL)
     except urllib.error.HTTPError:
         print('Skipping this one - there was an HTTP error: ' + url)
 

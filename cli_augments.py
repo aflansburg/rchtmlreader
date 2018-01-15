@@ -39,7 +39,8 @@ class ConsoleColors:
     FAIL = '\033[91m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+    UNDERLINE = '\033[4m',
+    NORMAL = '\033[1;37m'
 
 
 def clean_directories():
@@ -48,17 +49,18 @@ def clean_directories():
     file_rm_count = 0
     try:
         for subdir in sub_dirs:
-            file_rm_count += 1
+
             full = gen_path + subdir
             if os.path.isdir(full):
                 files = [name for name in os.listdir(gen_path + subdir)]
                 for f in files:
                     if f != 'multi-file.csv' and f !='.DS_Store':
                         os.remove(gen_path + subdir + dir_slash + f)
-                        print(f'\n{file_rm_count} files were purged.')
+                        file_rm_count += 1
     except PermissionError:
         print(ConsoleColors.FAIL + '\nFiles could not be purged due to file being open. Files will not be purged.\n' +
               ConsoleColors.ENDC)
+    print(f'\n{file_rm_count} files were purged.')
 
 
 def arg_parser(args):
