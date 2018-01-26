@@ -221,7 +221,7 @@ def append_amazon(product):
 
 def get_multifits(fitment):
     # years
-    regex_years = r"(\d{4})-(\d{4})"
+    regex_years = r"(\d{2,4})-(\d{2,4})"
 
     # drive type
     regex_drive = r"(\dWD)"
