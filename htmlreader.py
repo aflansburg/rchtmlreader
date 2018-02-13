@@ -118,6 +118,8 @@ def read_page(arg, opts):
             else:
                 description = title
 
+            description = description.replace("\n", "")
+
             if opt_price is not None:
                 price = opt_price
             else:
@@ -127,29 +129,50 @@ def read_page(arg, opts):
 
             if opt_img_url is not None:
                 main_img_url = opt_img_url
-                all_images = [main_img_url]
+                # all_images = []
                 print(cColors.WARNING + '\nDue to options requirements - only main image will be processed - make sure'
                                         'to add any desired additional photos manually.')
-            else:
-                main_img = soup.find('img', {'id': 'image-main'})
-                main_img = str(main_img)
-                main_img_re = r"\ssrc=\"(.*)\"\stitle"
-                main_img_match = re.findall(main_img_re, main_img)
-                main_img_url = helpers.uri_cleaner(main_img_match[0])
-                all_images = [main_img_url]
+            # else:
+            #     main_img = input(cColors.WARNING + '\nPlease paste in the main image url:\n' + cColors.ENDC)
+            #     main_img = helpers.uri_cleaner(main_img)
+            #     main_img_url = main_img
+                # main_img = soup.find('img', {'id': 'image-main'})
+                # main_img = str(main_img)
+                # main_img_re = r"\ssrc=\"(.*)\"\stitle"
+                # main_img_match = re.findall(main_img_re, main_img)
+                # main_img_url = helpers.uri_cleaner(main_img_match[0])
+                all_images = []
 
+            all_images = []
             # find all images
-            image_soup = soup.find_all('a', {'class': 'thumb-link'})
-            for thumb in image_soup:
-                img = str(thumb)
-                img = img.replace('\n', '')
-                img_re = r"http.*.jpg"
-                img_m = re.findall(img_re, img)
-                if len(img_m) > 0:
-                    img = img_m[0]
-                    img = helpers.uri_cleaner(img)
-                    if img != main_img_url:
-                        all_images.append(img)
+            image_soup = soup.find('div', {'class': 'product-image-gallery'})
+            # image_soup = soup.find_all('a', {'class': 'thumb-link'})
+            for child in image_soup.children:
+                if child.name == 'img':
+                    if child.attrs['id'] == 'image-main':
+                        main_img_url = helpers.uri_cleaner(child.attrs['src'])
+                    else:
+                        all_images.append(helpers.uri_cleaner(child.attrs['src']))
+
+            # for thumb in image_soup:
+            #     img = str(thumb)
+            #     img = img.replace('\n', '')
+            #     img_re = r"http.*.jpg"
+            #     img_m = re.findall(img_re, img)
+            #     if len(img_m) > 0:
+            #         img = img_m[0]
+            #         img = helpers.uri_cleaner(img)
+            #         if img != main_img_url and img.replace(".jpg", "") not in main_img_url:
+            #             # overly complex img url filtering
+            #             # main_match = re.search(img_dupe_re, main_img_url)
+            #             # print(main_match[0])
+            #             # dmatch = re.search(img_dupe_re, img)
+            #             # print(dmatch[0])
+            #             # if main_match[0].replace(".", "") + "_1" != dmatch[0].replace(".", "") and \
+            #             #        main_match[0] != dmatch[0]:
+            #             if 'base_1' not in img:
+            #                 all_images.append(img)
+
             if len(all_images) > 0:
                 all_images = helpers.check_imagelinks(all_images)
 
@@ -182,7 +205,7 @@ def read_page(arg, opts):
                 if custom_selector and custom_note != '':
                     notes.append(f'Fits models with {custom_note} ONLY!')
                 notes = '; '.join(notes)
-            elif len(feature_data) == 1 and custom_selector:
+            elif len(feature_data) == 1 and custom_selector and custom_note is not None and custom_note != "":
                 notes = f'Fits models with {custom_note} ONLY!'
             else:
                 notes = ''
@@ -246,6 +269,8 @@ def read_page(arg, opts):
             if len(box_items_only) >= 1:
                 box_contents = list(filter(None, box_items_only[0].split('\n')))
                 box_contents = [i.strip(' ') for i in box_contents]
+                if option is not None or option != "":
+                    box_items_only.append(option)
             else:
                 for frontComponent in soup.find_all('ul', {'class': 'bullet-list', 'id': 'front'}):
                     front.append(frontComponent.text)
@@ -255,6 +280,9 @@ def read_page(arg, opts):
                     shock.append(shockComponent.text)
                 for bodyComponent in soup.find_all('ul', {'class': 'bullet-list', 'id': 'body'}):
                     body.append(bodyComponent.text)
+
+            opt_price_regex = re.compile('.*\[\+\$\d+\]')
+            opt_optional_regex = re.compile('.*Optional.*')
 
             try:
                 box_contents
