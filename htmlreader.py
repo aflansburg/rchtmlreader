@@ -132,27 +132,19 @@ def read_page(arg, opts):
                 # all_images = []
                 print(cColors.WARNING + '\nDue to options requirements - only main image will be processed - make sure'
                                         'to add any desired additional photos manually.')
-            # else:
-            #     main_img = input(cColors.WARNING + '\nPlease paste in the main image url:\n' + cColors.ENDC)
-            #     main_img = helpers.uri_cleaner(main_img)
-            #     main_img_url = main_img
-                # main_img = soup.find('img', {'id': 'image-main'})
-                # main_img = str(main_img)
-                # main_img_re = r"\ssrc=\"(.*)\"\stitle"
-                # main_img_match = re.findall(main_img_re, main_img)
-                # main_img_url = helpers.uri_cleaner(main_img_match[0])
-                all_images = []
-
             all_images = []
+
             # find all images
             image_soup = soup.find('div', {'class': 'product-image-gallery'})
             # image_soup = soup.find_all('a', {'class': 'thumb-link'})
             for child in image_soup.children:
                 if child.name == 'img':
-                    if child.attrs['id'] == 'image-main':
+                    if child.attrs['id'] == 'image-main' and opt_img_url is None:
                         main_img_url = helpers.uri_cleaner(child.attrs['src'])
                     else:
-                        all_images.append(helpers.uri_cleaner(child.attrs['src']))
+                        cl_img = helpers.uri_cleaner(child.attrs['src'])
+                        if cl_img not in all_images:
+                            all_images.append(cl_img)
 
             # for thumb in image_soup:
             #     img = str(thumb)

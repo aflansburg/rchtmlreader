@@ -100,8 +100,13 @@ def create_jobber(product, images):
                     multi_dict.update(multi_fit)
                     jobber_writer.writerow(multi_dict)
         elif len(fitments) == 1:
-            jobber_dict.update(get_multifits(fitments[0]))
-            jobber_writer.writerow(jobber_dict)
+            if fitments is not None:
+                jobber_dict.update(get_multifits(fitments[0]))
+                jobber_writer.writerow(jobber_dict)
+            else:
+                print("Fitments could not be parsed, likely due to 2-digit dates.")
+                jobber_dict.update(get_multifits(""))
+                jobber_writer.writerow(jobber_dict)
         else:
             jobber_writer.writerow(jobber_dict)
 
@@ -220,50 +225,54 @@ def append_amazon(product):
 
 
 def get_multifits(fitment):
-    # years
-    regex_years = r"(\d{2,4})-(\d{2,4})"
 
-    # drive type
-    regex_drive = r"(\dWD)"
+    if fitment == "":
+        return ""
+    else:
+        # years
+        regex_years = r"(\d{2,4})-(\d{2,4})"
 
-    # make
-    regex_make = r"WD\s(\S+)\s"
+        # drive type
+        regex_drive = r"(\dWD)"
 
-    # model
-    regex_model = r"WD\s\S+\s(.*)"
+        # make
+        regex_make = r"WD\s(\S+)\s"
 
-    start_year = None
+        # model
+        regex_model = r"WD\s\S+\s(.*)"
 
-    years = re.finditer(regex_years, fitment)
-    for year in years:
-        start_year = year.group(1)
-        end_year = year.group(2)
-    if start_year is None:
-        regex_year = r"\d{4}"
-        year = re.findall(regex_year, fitment)
-        years = None
+        start_year = None
 
-    drive_matches = re.findall(regex_drive, fitment)
+        years = re.finditer(regex_years, fitment)
+        for year in years:
+            start_year = year.group(1)
+            end_year = year.group(2)
+        if start_year is None:
+            regex_year = r"\d{4}"
+            year = re.findall(regex_year, fitment)
+            years = None
 
-    if drive_matches:
-        if len(drive_matches) == 2:
-            drive_type = drive_matches[1] + '/' + drive_matches[0]
-        else:
-            drive_type = drive_matches[0]
+        drive_matches = re.findall(regex_drive, fitment)
 
-        make = re.finditer(regex_make, fitment)
-        for match in make:
-            v_make = match.group(1)
+        if drive_matches:
+            if len(drive_matches) == 2:
+                drive_type = drive_matches[1] + '/' + drive_matches[0]
+            else:
+                drive_type = drive_matches[0]
 
-        model = re.finditer(regex_model, fitment)
+            make = re.finditer(regex_make, fitment)
+            for match in make:
+                v_make = match.group(1)
 
-        for m in model:
-            v_model = m.group(1)
+            model = re.finditer(regex_model, fitment)
 
-        if years is not None:
-            fitment_details = {'Start Year': start_year, 'End Year': end_year, 'Make': v_make, 'Model': v_model,
-                               'Drive': drive_type}
-        else:
-            fitment_details = {'Start Year': year[0], 'Make': v_make, 'Model': v_model,
-                               'Drive': drive_type}
-        return fitment_details
+            for m in model:
+                v_model = m.group(1)
+
+            if years is not None:
+                fitment_details = {'Start Year': start_year, 'End Year': end_year, 'Make': v_make, 'Model': v_model,
+                                   'Drive': drive_type}
+            else:
+                fitment_details = {'Start Year': year[0], 'Make': v_make, 'Model': v_model,
+                                   'Drive': drive_type}
+            return fitment_details
