@@ -197,6 +197,9 @@ def read_page(arg, opts):
             else:
                 features = []
 
+            if custom_selector and option != '':
+                features.append(option)
+
             if len(feature_data) > 1:
                 notes = list(filter(None, feature_data[1].split('\n')))
                 notes = [i.strip(' ') for i in notes]
