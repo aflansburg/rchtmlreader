@@ -6,7 +6,8 @@ from cli_augments import ConsoleColors as cColors
 
 
 def uri_cleaner(uri):
-    uri_regex = r"^(.*product)\/cache.*(\/\w\/\w\/.*)"
+    # uri_regex = r"^(.*product)\/cache.*(\/\w\/\w\/.*)"
+    uri_regex = r"^(.*product)\/cache.*(\/\S\/\S\/.*)"
     uri_matches = re.findall(uri_regex, uri)
     u_match = ''
     for uri_match in uri_matches:

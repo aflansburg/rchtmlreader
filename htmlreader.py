@@ -132,6 +132,7 @@ def read_page(arg, opts):
                 # all_images = []
                 print(cColors.WARNING + '\nDue to options requirements - only main image will be processed - make sure'
                                         'to add any desired additional photos manually.')
+
             all_images = []
 
             # find all images
