@@ -283,8 +283,9 @@ def read_page(arg, opts):
                 for bodyComponent in soup.find_all('ul', {'class': 'bullet-list', 'id': 'body'}):
                     body.append(bodyComponent.text)
 
-            opt_price_regex = re.compile('.*\[\+\$\d+\]')
-            opt_optional_regex = re.compile('.*Optional.*')
+            # this is unused for some reason
+            # opt_price_regex = re.compile('.*\[\+\$\d+\]')
+            # opt_optional_regex = re.compile('.*Optional.*')
 
             try:
                 box_contents
