@@ -72,7 +72,7 @@ def arg_parser(args):
     multi_url_path = ''
     multi_urls = False
 
-    if args[1] not in ['-purge', '-p', '-n', '-new', '-v', '-video', '-m', '-multi']:
+    if args[1] not in ['-purge', '-p', '-n', '-new', '-v', '-video', '-m', '-multi', '-combine', '-c']:
         try:
             if validators.url(args[1]):
                 url = str(args[1])
@@ -109,7 +109,43 @@ def arg_parser(args):
                                        '\nEnter the path to the csv containing the list of URLS:\n' +
                                        ConsoleColors.ENDC)
                 multi_urls = True
-
+            if str(arg).lower() in ['-combine', '-c']:
+                scpath = r"C:\Users\aflansburg\Dropbox\Business\Rough Country\generated_files\sc-line"
+                scfiles = os.listdir(scpath)
+                # scfiles = [ff for ff in os.listdir(r"C:\Users\aflansburg\Dropbox\Business\Rough Country\generated_files\sc-line") if os.path.isfile(ff) and ff.endswith(".csv")]
+                data = []
+                for scfile in scfiles:
+                    with open(scpath + "\\" + scfile, 'r') as f:
+                        reader = csv.reader(f)
+                        data.append(list(reader))
+                headers = data[0][0]
+                with open(scpath + "\\" + 'combined.csv', 'a') as outfile:
+                    writer = csv.writer(outfile, delimiter=',', lineterminator='\n')
+                    writer.writerow(list(headers))
+                    for d in data:
+                        for i in d:
+                            if d.index(i) != 0 and i != '':
+                                writer.writerow(i)
+                outfile.close()
+                print(ConsoleColors.WARNING + '\nSC lines combined -> combined.csv\n')
+            if str(arg).lower() in ['-cjobber', '-cj']:
+                jpath = r"C:\Users\aflansburg\Dropbox\Business\Rough Country\generated_files\jobber_lines"
+                jfiles = os.listdir(jpath)
+                data = []
+                for jfile in jfiles:
+                    with open(jpath + "\\" + jfile, 'r') as jf:
+                        reader = csv.reader(jf)
+                        data.append(list(reader))
+                headers = data[0][0]
+                with open(jpath + "\\" + 'combined.csv', 'a') as outfile:
+                    writer = csv.writer(outfile, delimiter=',', lineterminator='\n')
+                    writer.writerow(list(headers))
+                    for d in data:
+                        for i in d:
+                            if d.index(i) != 0 and i != '':
+                                writer.writerow(i)
+                outfile.close()
+                print(ConsoleColors.WARNING + '\nJobber lines combined -> combined.csv\n')
     if url is not None:
         if new_item and insert_video:
             parsed_args = {'UPC': upc, 'Weight': weight, 'Video Link': video_link, 'URL': url}

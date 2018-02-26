@@ -55,10 +55,10 @@ def read_page(arg, opts):
     video_link = ''
 
     # need to fix this implementation
-    # if opts is not None:
-    #     if type(opts) == bool:
-    #         if opts:
-    #             append_to_file = True
+    if opts is not None:
+        if type(opts) == bool:
+            if opts:
+                append_to_file = True
     if type(arg) == dict:
         url = arg['URL']
         upc = arg['UPC']
@@ -180,28 +180,34 @@ def read_page(arg, opts):
                     vid_img = helpers.uri_cleaner(vid_img[0]['src'])
 
             feature_data = []
+            notes_data = []
 
             for ultag in soup.find_all('ul', {'class': 'bullet-list features'}):
-                feature_data.append(ultag.text)
+                if ultag.parent['class'] == ['features-container']:
+                    feature_data.append(ultag.text)
+                elif ultag.parent['class'] == ['notes-container']:
+                    print(ultag.text)
+                    notes_data.append(ultag.text)
 
             if len(feature_data) > 0:
                 features = list(filter(None, feature_data[0].split('\n')))
                 features = [i.strip(' ') for i in features]
+
             else:
                 features = []
 
-            if custom_selector and option != '':
+            if custom_selector and option != '' and option is not None:
                 features.append(option)
 
-            if len(feature_data) > 1:
-                notes = list(filter(None, feature_data[1].split('\n')))
+            if len(notes_data) > 0:
+                notes = list(filter(None, notes_data[0].split('\n')))
                 notes = [i.strip(' ') for i in notes]
                 notes = [i.strip('<li>') for i in notes]
                 notes = [i.strip('</li>') for i in notes]
                 if custom_selector and custom_note != '':
                     notes.append(f'Fits models with {custom_note} ONLY!')
                 notes = '; '.join(notes)
-            elif len(feature_data) == 1 and custom_selector and custom_note is not None and custom_note != "":
+            elif len(notes_data) == 0 and custom_selector and custom_note is not None and custom_note != "":
                 notes = f'Fits models with {custom_note} ONLY!'
             else:
                 notes = ''
@@ -366,7 +372,7 @@ def read_page(arg, opts):
 
                 file_location = base_dir + csv_dir
 
-                if item_sku != '' and append_to_file == False:
+                if item_sku != '' and append_to_file is False:
                     filename = file_location + item_sku + '.csv'
                 elif not append_to_file:
                     filename = file_location + 'multi-file.csv'
