@@ -169,6 +169,17 @@ def read_page(arg, opts):
             if len(all_images) > 0:
                 all_images = helpers.check_imagelinks(all_images)
 
+            # validate images
+            if custom_selector:
+                img1 = all_images[0]
+                print('\nImage Validation\n-----------------------------------\n')
+                print('Main Img: ', main_img_url)
+                print('\nImage_1: ', img1)
+                keep_img1 = input('Do you wish to keep Image_1 (it may be the same as Main Img?: ')
+                if keep_img1.lower() not in ['y', 'yes', 'ye']:
+                    all_images.pop(0)
+                    print(img1, ' removed!')
+
             # find video link -- this doesn't appear to be fully implemented yet....
             all_vids = []
             video_soup = soup.find_all('a', {'id': 'media-vid-0'})

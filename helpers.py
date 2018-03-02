@@ -45,7 +45,8 @@ def check_imagelinks(imglist):
 
 
 def ship_rate(wt):
-    weight = float(wt)
+    weight = float(wt) + 1
+    weight = float(weight)
     weight = int(round(weight))
     rates_file = 'data/int_ship_rates.csv'
 
