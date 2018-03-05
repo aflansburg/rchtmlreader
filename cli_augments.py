@@ -119,7 +119,7 @@ def arg_parser(args):
                         reader = csv.reader(f)
                         data.append(list(reader))
                 headers = data[0][0]
-                with open(scpath + "\\" + 'combined.csv', 'a') as outfile:
+                with open(scpath + "\\" + 'sc-combined.csv', 'a') as outfile:
                     writer = csv.writer(outfile, delimiter=',', lineterminator='\n')
                     writer.writerow(list(headers))
                     for d in data:
@@ -127,7 +127,7 @@ def arg_parser(args):
                             if d.index(i) != 0 and i != '':
                                 writer.writerow(i)
                 outfile.close()
-                print(ConsoleColors.WARNING + '\nSC lines combined -> combined.csv\n')
+                print(ConsoleColors.WARNING + '\nSC lines combined -> sc-combined.csv\n')
             if str(arg).lower() in ['-cjobber', '-cj']:
                 jpath = r"C:\Users\aflansburg\Dropbox\Business\Rough Country\generated_files\jobber_lines"
                 jfiles = os.listdir(jpath)
@@ -137,7 +137,7 @@ def arg_parser(args):
                         reader = csv.reader(jf)
                         data.append(list(reader))
                 headers = data[0][0]
-                with open(jpath + "\\" + 'combined.csv', 'a') as outfile:
+                with open(jpath + "\\" + 'jobber-combined.csv', 'a') as outfile:
                     writer = csv.writer(outfile, delimiter=',', lineterminator='\n')
                     writer.writerow(list(headers))
                     for d in data:
@@ -145,7 +145,25 @@ def arg_parser(args):
                             if d.index(i) != 0 and i != '':
                                 writer.writerow(i)
                 outfile.close()
-                print(ConsoleColors.WARNING + '\nJobber lines combined -> combined.csv\n')
+                print(ConsoleColors.WARNING + '\nJobber lines combined -> jobber-combined.csv\n')
+            if str(arg).lower() in ['camazon', '-ca']:
+                apath = r"C:\Users\aflansburg\Dropbox\Business\Rough Country\generated_files\amzFiles"
+                afiles = os.listdir(apath)
+                data = []
+                for afile in afiles:
+                    with open(apath + "\\" + afile, 'r') as af:
+                        reader = csv.reader(af)
+                        data.append(list(reader))
+                headers = data[0][0]
+                with open(apath + "\\" + 'amz-combined.csv', 'a') as outfile:
+                    writer = csv.writer(outfile, delimiter=',', lineterminator='\n')
+                    writer.writerow(list(headers))
+                    for d in data:
+                        for i in d:
+                            if d.index(i) != 0 and i != '':
+                                writer.writerow(i)
+                outfile.close()
+                print(ConsoleColors.WARNING + '\nAmazon lines combined -> amz-combined.csv\n')
     if url is not None:
         if new_item and insert_video:
             parsed_args = {'UPC': upc, 'Weight': weight, 'Video Link': video_link, 'URL': url}

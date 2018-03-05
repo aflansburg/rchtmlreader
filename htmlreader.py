@@ -147,24 +147,6 @@ def read_page(arg, opts):
                         if cl_img not in all_images:
                             all_images.append(cl_img)
 
-            # for thumb in image_soup:
-            #     img = str(thumb)
-            #     img = img.replace('\n', '')
-            #     img_re = r"http.*.jpg"
-            #     img_m = re.findall(img_re, img)
-            #     if len(img_m) > 0:
-            #         img = img_m[0]
-            #         img = helpers.uri_cleaner(img)
-            #         if img != main_img_url and img.replace(".jpg", "") not in main_img_url:
-            #             # overly complex img url filtering
-            #             # main_match = re.search(img_dupe_re, main_img_url)
-            #             # print(main_match[0])
-            #             # dmatch = re.search(img_dupe_re, img)
-            #             # print(dmatch[0])
-            #             # if main_match[0].replace(".", "") + "_1" != dmatch[0].replace(".", "") and \
-            #             #        main_match[0] != dmatch[0]:
-            #             if 'base_1' not in img:
-            #                 all_images.append(img)
 
             if len(all_images) > 0:
                 all_images = helpers.check_imagelinks(all_images)
@@ -179,6 +161,9 @@ def read_page(arg, opts):
                 if keep_img1.lower() not in ['y', 'yes', 'ye']:
                     all_images.pop(0)
                     print(img1, ' removed!')
+            else:
+                if main_img_url == all_images[0]:
+                    all_images.pop(0)
 
             # find video link -- this doesn't appear to be fully implemented yet....
             all_vids = []
