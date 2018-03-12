@@ -106,6 +106,7 @@ def read_page(arg, opts):
                     item_sku = input(cColors.WARNING + '\nPlease input the item SKU: ' + cColors.ENDC)
             else:
                 item_sku = input(cColors.WARNING + '\nCOULD NOT LOCATE SKU - MANUALLY ENTER SKU: \n' + cColors.ENDC)
+                opt_img_url = input(cColors.WARNING + '\nPlease paste in the raw image url:\n' + cColors.ENDC)
 
             title = soup.find('h1', {'itemprop': 'name'})
             title = str(title.text)
@@ -152,7 +153,7 @@ def read_page(arg, opts):
                 all_images = helpers.check_imagelinks(all_images)
 
             # validate images
-            if custom_selector:
+            if custom_selector or opt_img_url is not None:
                 img1 = all_images[0]
                 print('\nImage Validation\n-----------------------------------\n')
                 print('Main Img: ', main_img_url)
