@@ -163,7 +163,7 @@ def read_page(arg, opts):
                     all_images.pop(0)
                     print(img1, ' removed!')
             else:
-                if main_img_url == all_images[0]:
+                if len(all_images) > 0 and main_img_url == all_images[0]:
                     all_images.pop(0)
 
             # find video link -- this doesn't appear to be fully implemented yet....
