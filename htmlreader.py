@@ -52,6 +52,7 @@ def read_page(arg, opts):
     append_to_file = False
     weight = ''
     upc = ''
+    discount = ''
     video_link = ''
 
     # need to fix this implementation
@@ -60,6 +61,7 @@ def read_page(arg, opts):
             if opts:
                 append_to_file = True
     if type(arg) == dict:
+        discount = arg['Discount']
         url = arg['URL']
         upc = arg['UPC']
         weight = arg['Weight']
@@ -307,14 +309,15 @@ def read_page(arg, opts):
                     'SKU': item_sku,
                     'Description': description,
                     'Price': price,
-                    'Features': '; '.join(features).replace('.', ''),
+                    'Features': '; '.join(features),
                     'Notes': notes,
                     'Specs': specs,
                     'Fitment': fitments,
                     'In The Box': box_contents,
                     'MainImg': main_img_url,
                     'Weight': weight,
-                    'UPC': upc
+                    'UPC': upc,
+                    'Discount': discount
                 }
             elif box_contents is not None:
                 content = {
@@ -328,7 +331,8 @@ def read_page(arg, opts):
                     'In The Box': box_contents,
                     'MainImg': main_img_url,
                     'Weight': weight,
-                    'UPC': upc
+                    'UPC': upc,
+                    'Discount': discount
                 }
             else:
                 content = {
@@ -341,7 +345,8 @@ def read_page(arg, opts):
                     'Specs': specs,
                     'MainImg': main_img_url,
                     'Weight': weight,
-                    'UPC': upc
+                    'UPC': upc,
+                    'Discount': discount
                 }
 
             if video_link is not None:

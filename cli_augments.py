@@ -71,8 +71,10 @@ def arg_parser(args):
     upc = ''
     multi_url_path = ''
     multi_urls = False
+    get_vid_path = ''
+    dealerDiscount = ''
 
-    if args[1] not in ['-purge', '-p', '-n', '-new', '-v', '-video', '-m', '-multi', '-combine', '-c']:
+    if args[1] not in ['-purge', '-p', '-n', '-new', '-v', '-video', '-m', '-multi', '-combine', '-c', '-getvids']:
         try:
             if validators.url(args[1]):
                 url = str(args[1])
@@ -98,6 +100,7 @@ def arg_parser(args):
                 print(ConsoleColors.WARNING + '\nNew product creation request.\n')
                 upc = input(ConsoleColors.WARNING + 'Please enter the product\'s UPC: ' + ConsoleColors.ENDC)
                 weight = input('\nPlease enter the product\'s weight in Lbs: ' + ConsoleColors.ENDC)
+                dealerDiscount = input('\nPlease enter the product\'s dealer discount: ' + ConsoleColors.ENDC)
             if str(arg).lower() in ['-v', '-video'] and url is not None:
                 v_link_index = args.index(arg) + 1
                 if args[v_link_index]:
@@ -164,13 +167,19 @@ def arg_parser(args):
                                 writer.writerow(i)
                 outfile.close()
                 print(ConsoleColors.WARNING + '\nAmazon lines combined -> amz-combined.csv\n')
+            if str(arg).lower() in ['-getvids']:
+                get_vid_path = input(ConsoleColors.WARNING +
+                                       '\nEnter the path to the csv containing the list of urls:\n' +
+                                       ConsoleColors.ENDC)
+                # Get youtube video link (if exists) here
+
     if url is not None:
         if new_item and insert_video:
             parsed_args = {'UPC': upc, 'Weight': weight, 'Video Link': video_link, 'URL': url}
             return parsed_args
         elif new_item:
             print(url)
-            parsed_args = {'UPC': upc, 'Weight': weight, 'URL': url, 'Video Link': video_link, 'URL': url}
+            parsed_args = {'UPC': upc, 'Weight': weight, 'URL': url, 'Video Link': video_link, 'URL': url, 'Discount': dealerDiscount}
             return parsed_args
         elif insert_video:
             parsed_args = {'Video Link': video_link, 'URL': url}

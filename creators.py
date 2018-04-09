@@ -63,7 +63,7 @@ def create_jobber(product, images):
                    'Benefits': product['Features'], 'Combined Fitment': product['Fitment'],
                    'Kit Contents': product['In The Box'], 'Technical Notes': product['Notes'], 'US Shipping': 0,
                    'MAP': product['Price'], 'Item Specifics': product['Specs'], 'Video Link': product['video_link'],
-                   'Image 1': product['MainImg'], 'Warranty': 'Limited Lifetime', 'UPC Code': product['UPC']}
+                   'Image 1': product['MainImg'], 'Warranty': 'Limited Lifetime', 'UPC Code': product['UPC'], 'Flat Discount %': product['Discount']}
 
     if product['Weight'] != '' and type(product['Weight'] != str):
         jobber_dict['Weight (Lbs)'] = product['Weight']
