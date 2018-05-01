@@ -257,6 +257,7 @@ def read_page(arg, opts):
 
             fitments = [fitment.replace('<td colspan="4">', '') for fitment in fitments]
             fitments = [fitment.replace(' </tr>', '; ') for fitment in fitments]
+            fitments = [fitment.strip() for fitment in fitments]
 
             box_items_only = []
             front = []
