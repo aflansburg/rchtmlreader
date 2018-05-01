@@ -157,7 +157,8 @@ def create_amazon(product, images):
                                       'part_number': product['SKU'], 'bullet_point3': 'Notes: ' + product['Notes'],
                                       'standard_price': product['Price'], 'bullet_point5': 'Specs: ' +
                                                                                            product['Specs'],
-                                      'main_image_url': images[0]})
+                                      'main_image_url': product['MainImg'],
+                                      'other_image_url1': images[0]})
         if len(images) == 2:
             amz_file_writer.writerow({'item_sku': product['SKU'], 'product_description': product['Description'],
                                       'item_name': product['Title'], 'bullet_point1': 'Features: ' +
@@ -167,9 +168,9 @@ def create_amazon(product, images):
                                       'part_number': product['SKU'], 'bullet_point3': 'Notes: ' + product['Notes'],
                                       'standard_price': product['Price'], 'bullet_point5': 'Specs: ' +
                                                                                            product['Specs'],
-                                      'main_image_url': images[0],
-                                      'other_image_url1': images[1]})
-        if len(images) == 3:
+                                      'main_image_url': product['MainImg'],
+                                      'other_image_url1': images[0], 'other_image_url2': images[1]})
+        if len(images) >= 3:
             amz_file_writer.writerow({'item_sku': product['SKU'], 'product_description': product['Description'],
                                       'item_name': product['Title'], 'bullet_point1': 'Features: ' +
                                                                                       product['Features'],
@@ -178,21 +179,8 @@ def create_amazon(product, images):
                                       'part_number': product['SKU'], 'bullet_point3': 'Notes: ' + product['Notes'],
                                       'standard_price': product['Price'], 'bullet_point5': 'Specs: ' +
                                                                                            product['Specs'],
-                                      'main_image_url': images[0],
-                                      'other_image_url1': images[1], 'other_image_url2': images[2]})
-        if len(images) >= 4:
-            amz_file_writer.writerow({'item_sku': product['SKU'], 'product_description': product['Description'],
-                                      'item_name': product['Title'], 'bullet_point1': 'Features: ' +
-                                                                                      product['Features'],
-                                      'bullet_point2': 'Fits: ' + product['Fitment'],
-                                      'bullet_point4': 'Kit Contents: ' + product['In The Box'],
-                                      'part_number': product['SKU'], 'bullet_point3': 'Notes: ' + product['Notes'],
-                                      'standard_price': product['Price'], 'bullet_point5': 'Specs: ' +
-                                                                                           product['Specs'],
-                                      'main_image_url': images[0],
-                                      'other_image_url1': images[1], 'other_image_url2': images[2],
-                                      'other_image_url3': images[3]})
-
+                                      'main_image_url': product['MainImg'],
+                                      'other_image_url1': images[0], 'other_image_url2': images[1], 'other_image_url3': images[2]})
         amzFileCsvFile.close()
 
 
