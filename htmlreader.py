@@ -540,7 +540,7 @@ def read_page(arg, opts):
                         sc_row_data['walmart attr:Shipping Override-Ship Region (#2)'] = 'STREET_48_STATES'
                         sc_row_data['walmart attr:Shipping Override-Ship Method (#2)'] = 'STANDARD'
                         sc_row_data['walmart attr:Shipping Override-Ship Price (#2)'] = 0
-                        sc_row_data['product attribute:apply_update'] = 'Y'
+                        sc_row_data['product attribute:apply_update'] = 'N'
                         if walmart_desc:  # need split up
                             sc_row_data['walmart description'] = walmart_desc
                         if walmart_shelf:
